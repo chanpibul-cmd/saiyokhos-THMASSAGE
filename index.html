@@ -856,6 +856,17 @@
             return s.trim() || String(name).trim();
         }
 
+        // HTML Escape Helper
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // JSONP Loader Helper for Google Apps Script Web App
         function callGasApi(params) {
             return new Promise((resolve, reject) => {
