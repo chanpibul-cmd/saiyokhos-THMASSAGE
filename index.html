@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบส่งและตรวจสอบข้อมูลแพทย์แผนไทย (Google Sheet & Telegram) - โรงพยาบาลไทรโยค</title>
+    <!-- Google Fonts & Bootstrap 5 & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { 
+            background-color: #f0fdf4; 
+            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            padding-top: 25px; 
+            padding-bottom: 60px; 
+            color: #1e293b;
+        }
+        .header-box {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border-radius: 16px;
+            color: white;
+            padding: 24px 30px;
+            box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.25);
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        }
+        .card-main { 
+            border-radius: 16px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+            border: 1px solid #e2e8f0; 
+            overflow: hidden;
+            background: white;
+        }
+        table th { 
+            background-color: #f8fafc !important; 
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.9rem;
+            white-space: nowrap; 
+            border-bottom: 2px solid #e2e8f0;
+        }
+        table td {
+            font-size: 0.88rem;
+            vertical-align: middle;
+        }
+        .badge-cat {
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+        }
+        .search-input {
+            max-width: 320px;
+            border-radius: 10px;
+        }
+
+        /* Resizable Column Headers */
+        table.resizable-table th {
+            position: relative;
+            user-select: none;
+        }
+        table.resizable-table th .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 7px;
+            cursor: col-resize;
+            user-select: none;
+            height: 100%;
+            z-index: 10;
+        }
+        table.resizable-table th .resizer:hover,
+        table.resizable-table th .resizer.resizing {
+            background-color: #10b981;
+        }
+
+        /* Compact Table Density Mode */
+        table.table-compact th, 
+        table.table-compact td {
+            padding: 0.28rem 0.45rem !important;
+            font-size: 0.78rem !important;
+        }
+
+        /* Fullscreen Expanded Mode */
+        .card-main.is-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            background: white !important;
+        }
+        .card-main.is-fullscreen .table-responsive {
+            max-height: calc(100vh - 140px) !important;
+            flex: 1 1 auto !important;
+        }
+
+        /* Drug tags list styling */
+        .drug-tag {
+            display: inline-block;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            border-radius: 4px;
+            padding: 1px 6px;
+            margin: 2px 2px 2px 0;
+            font-size: 0.76rem;
+            white-space: nowrap;
+        }
+
+        /* Login Modal & Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-header {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: white;
+            padding: 28px 24px;
+            text-align: center;
+        }
+        .loading-spinner-wrapper {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.75);
+            z-index: 9998;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            backdrop-filter: blur(2px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner-wrapper">
+        <div class="spinner-border text-success" style="width: 3.5rem; height: 3.5rem;" role="status">
+            <span class="visually-hidden">กำลังโหลด...</span>
+        </div>
+        <div class="mt-3 fw-bold text-success" id="loadingText">กำลังเชื่อมต่อ Google Sheet...</div>
+    </div>
+
+    <!-- Login Overlay Modal -->
+    <div id="loginModal" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="bg-white text-success rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm mb-3" style="width: 64px; height: 64px;">
+                    <i class="fas fa-lock fs-2"></i>
+                </div>
+                <h4 class="fw-bold mb-1">ระบบตรวจสอบข้อมูลแพทย์แผนไทย</h4>
+                <div class="small opacity-90">โรงพยาบาลไทรโยค (Saiyok Hospital)</div>
+            </div>
+            <div class="p-4">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">ชื่อผู้ใช้ (Username)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" id="usernameInput" class="form-control border-start-0" placeholder="กรอกชื่อผู้ใช้งาน" required autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">รหัสผ่าน (Password)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-key text-muted"></i></span>
+                            <input type="password" id="passwordInput" class="form-control border-start-0" placeholder="กรอกรหัสผ่าน" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div id="loginAlert" class="alert alert-danger small py-2 d-none" role="alert">
+                        <i class="fas fa-exclamation-circle me-1"></i> ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold shadow-sm mt-2">
+                        <i class="fas fa-sign-in-alt me-1"></i> เข้าสู่ระบบ
+                    </button>
+                    <div class="text-center mt-3 text-muted small">
+                        เข้าสู่ระบบเพื่อเข้าถึงข้อมูลชีต <code>DATA</code>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-4 max-w-7xl" id="mainApp" style="display: none;">
+
+        <!-- Alert Notification -->
+        <div id="alertBox" class="alert alert-dismissible fade show shadow-sm border-0 d-none align-items-center mb-4" role="alert" style="border-radius: 12px;">
+            <i id="alertIcon" class="fas fa-check-circle fs-2 me-3"></i>
+            <div>
+                <h6 id="alertTitle" class="alert-heading mb-1 fw-bold">ข้อความแจ้งเตือน</h6>
+                <div id="alertDetail" class="small text-muted">รายละเอียดสถานะ</div>
+            </div>
+            <button type="button" class="btn-close" onclick="document.getElementById('alertBox').classList.add('d-none')"></button>
+        </div>
+
+        <!-- Header Box -->
+        <div class="header-box d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="fas fa-spa fs-3"></i>
+                    <h4 class="fw-bold mb-0">ระบบส่งข้อมูลแพทย์แผนไทย (Thai Traditional Medicine)</h4>
+                </div>
+                <div class="opacity-90 small">
+                    <i class="fas fa-hospital me-1"></i> โรงพยาบาลไทรโยค | บันทึกลง Google Sheet (DATA: <code>1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E</code>)
+                </div>
+            </div>
+            
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Date Range Picker -->
+                <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-3 shadow-sm">
+                    <span class="text-muted small ps-2"><i class="fas fa-calendar-alt text-success"></i></span>
+                    <input type="date" id="startDateInput" class="form-control form-control-sm text-dark border-0 shadow-none px-2" title="วันที่เริ่มต้น">
+                    <span class="text-muted small">ถึง</span>
+                    <input type="date" id="endDateInput" class="form-control form-control-sm text-dark border-0 shadow-none px-2" title="วันที่สิ้นสุด">
+                    <button type="button" id="searchBtn" class="btn btn-success btn-sm fw-bold px-3 shadow-none">
+                        <i class="fas fa-search me-1"></i> ค้นหา
+                    </button>
+                    <button type="button" id="todayBtn" class="btn btn-outline-secondary btn-sm px-2" title="เลือกวันนี้">
+                        วันนี้
+                    </button>
+                    <button type="button" id="allDatesBtn" class="btn btn-outline-secondary btn-sm px-2" title="ดูข้อมูลทั้งหมดในชีต">
+                        ทั้งหมด
+                    </button>
+                </div>
+
+                <!-- Sync & Logout Buttons -->
+                <button type="button" id="refreshBtn" class="btn btn-light btn-sm fw-bold px-3 shadow-sm text-success" title="โหลดข้อมูลล่าสุดจาก Google Sheet">
+                    <i class="fas fa-sync-alt me-1"></i> รีเฟรช
+                </button>
+                <button type="button" id="logoutBtn" class="btn btn-outline-light btn-sm px-3 fw-bold shadow-sm" title="ออกจากระบบ">
+                    <i class="fas fa-sign-out-alt me-1"></i> ออกจากระบบ
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card border-start border-4 border-success">
+                    <div class="text-muted small fw-semibold">จำนวนครั้งที่รับบริการ</div>
+                    <div class="d-flex align-items-baseline justify-content-between mt-2">
+                        <div class="fs-2 fw-bold text-success" id="kpiVisits">0</div>
+                        <span class="badge bg-success-subtle text-success">ครั้ง</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card border-start border-4 border-primary">
+                    <div class="text-muted small fw-semibold">จำนวนผู้รับบริการ (คน)</div>
+                    <div class="d-flex align-items-baseline justify-content-between mt-2">
+                        <div class="fs-2 fw-bold text-primary" id="kpiPatients">0</div>
+                        <span class="badge bg-primary-subtle text-primary">ราย</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card border-start border-4 border-success bg-success-subtle bg-opacity-25">
+                    <div class="text-muted small fw-semibold">รวมค่ารักษา (ไม่รวมกายภาพ)</div>
+                    <div class="d-flex align-items-baseline justify-content-between mt-2">
+                        <div class="fs-2 fw-bold text-success" id="kpiIncomeNoPt">0.00</div>
+                        <span class="badge bg-success text-white">บาท</span>
+                    </div>
+                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                        นวด: <b id="kpiMassage">0</b> | ยา: <b id="kpiDrug">0</b> บ.
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card border-start border-4 border-secondary">
+                    <div class="text-muted small fw-semibold">ยอดกายภาพพ่วง (ไม่คิดรวม)</div>
+                    <div class="d-flex align-items-baseline justify-content-between mt-2">
+                        <div class="fs-2 fw-bold text-secondary" id="kpiPhysical">0.00</div>
+                        <span class="badge bg-secondary-subtle text-secondary">บาท</span>
+                    </div>
+                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                        รวมทั้งสิ้นในบิล: <b id="kpiTotalBill">0</b> บ.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rights Category Badges -->
+        <div id="catStatsContainer" class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+            <span class="small fw-bold text-secondary me-2"><i class="fas fa-id-card me-1"></i> จำแนกตามกลุ่มสิทธิ:</span>
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Operations & ICD-10 Summaries -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white py-2 px-3 fw-bold text-success border-bottom-0 d-flex justify-content-between align-items-center">
+                        <div><i class="fas fa-hands me-1"></i> กลุ่มหัตถการ (<span id="opsTotalCount">0</span> รายการ)</div>
+                    </div>
+                    <div class="card-body p-3 pt-0">
+                        <ul class="list-group list-group-flush small" id="operationsList">
+                            <li class="list-group-item text-muted py-2">ไม่มีข้อมูลหัตถการ</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white py-2 px-3 fw-bold text-primary border-bottom-0 d-flex justify-content-between align-items-center">
+                        <div><i class="fas fa-stethoscope me-1"></i> กลุ่มโรคที่พบบ่อย (10 อันดับแรก)</div>
+                    </div>
+                    <div class="card-body p-3 pt-0">
+                        <ul class="list-group list-group-flush small" id="diagnosisList">
+                            <li class="list-group-item text-muted py-2">ไม่มีข้อมูลโรค</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Data Table -->
+        <div class="card-main" id="mainTableCard">
+            <div class="card-header bg-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="fas fa-list-ol text-success"></i> 
+                        รายการผู้รับบริการแพทย์แผนไทย (<span id="totalRowsCount">0</span> รายการ)
+                    </div>
+                    <!-- Page Size Selector: 15, 25, 50, 100, All -->
+                    <div class="d-flex align-items-center gap-1 small">
+                        <label class="text-muted fw-semibold mb-0" for="pageSizeSelect">แสดง:</label>
+                        <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto; font-weight: 500;">
+                            <option value="15">15 แถว</option>
+                            <option value="25" selected>25 แถว</option>
+                            <option value="50">50 แถว</option>
+                            <option value="100">100 แถว</option>
+                            <option value="all">ทั้งหมด</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <!-- Table Density & Fullscreen -->
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" id="toggleDensityBtn" class="btn btn-outline-secondary" title="ปรับระยะห่างตาราง (ปกติ / กะทัดรัด)">
+                            <i class="fas fa-compress-arrows-alt me-1"></i> ย่อช่อง
+                        </button>
+                        <button type="button" id="toggleFullscreenBtn" class="btn btn-outline-secondary" title="ขยายเต็มหน้าจอ">
+                            <i class="fas fa-expand me-1"></i> เต็มจอ
+                        </button>
+                    </div>
+                    
+                    <input type="text" id="searchInput" class="form-control form-control-sm search-input" placeholder="🔍 ค้นหา ชื่อ, HN, VN, ยา, หัตถการ...">
+                    
+                    <a id="sheetLinkBtn" href="https://docs.google.com/spreadsheets/d/1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E/edit" target="_blank" class="btn btn-outline-success btn-sm shadow-xs fw-semibold">
+                        <i class="fas fa-external-link-alt me-1"></i> เปิด Google Sheet
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-responsive" id="tableWrapper" style="max-height: 650px;">
+                <table class="table table-hover table-bordered align-middle mb-0 resizable-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 50px;">ลำดับ<div class="resizer"></div></th>
+                            <th class="text-center" style="width: 95px;">วันที่<div class="resizer"></div></th>
+                            <th class="text-center" style="width: 70px;">เวลา<div class="resizer"></div></th>
+                            <th style="min-width: 140px;">ชื่อ-นามสกุล<div class="resizer"></div></th>
+                            <th class="text-center" style="width: 125px;">เลขบัตรประชาชน<div class="resizer"></div></th>
+                            <th class="text-center" style="width: 75px;">HN<div class="resizer"></div></th>
+                            <th class="text-center" style="width: 90px;">VN<div class="resizer"></div></th>
+                            <th style="min-width: 130px;">สิทธิการรักษา<div class="resizer"></div></th>
+                            <th style="min-width: 150px;">DX (การวินิจฉัย)<div class="resizer"></div></th>
+                            <th style="min-width: 130px;">CC (อาการสำคัญ)<div class="resizer"></div></th>
+                            <th style="min-width: 160px;">หัตถการ<div class="resizer"></div></th>
+                            <th style="min-width: 170px;">ยาแผนไทย (จำนวน)<div class="resizer"></div></th>
+                            <th class="text-end" style="width: 80px;">ค่านวด<div class="resizer"></div></th>
+                            <th class="text-end" style="width: 80px;">ค่ายา<div class="resizer"></div></th>
+                            <th class="text-end text-muted" style="width: 85px;">ค่ากายภาพ<div class="resizer"></div></th>
+                            <th class="text-end bg-success-subtle fw-bold text-success" style="width: 110px;">รวม (ไม่รวมกายภาพ)<div class="resizer"></div></th>
+                            <th class="text-end text-secondary" style="width: 95px;">รวมทั้งสิ้น<div class="resizer"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Loaded dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card-footer bg-light py-2 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small">
+                <!-- Pagination info & controls -->
+                <div class="d-flex align-items-center gap-2">
+                    <span id="pageInfoText">แสดงแถว 0 - 0 จากทั้งหมด 0 แถว</span>
+                    <nav aria-label="Page navigation" class="ms-2">
+                        <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                        </ul>
+                    </nav>
+                </div>
+                <div>
+                    รวมทั้งสิ้น <b id="footerTotalRows">0</b> รายการ | รวมแผนไทย: <b class="text-success" id="footerIncomeNoPt">0.00</b> บาท (นวด: <span id="footerMassage">0</span> | ยา: <span id="footerDrug">0</span> บ.)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+    (function() {
+        // ==========================================
+        // 1. การตั้งค่าระบบ (Configuration)
+        // ==========================================
+        // Google Apps Script Web App Deployment URL
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbycspjIWwNOf42JKc6KyaPHy-o1xEc2EZTNLzOpyPLTP7JIjuqUvVwiN1zvJopMqu0O/exec";
+        const SPREADSHEET_ID = "1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E";
+        const SHEET_NAME = "DATA";
+
+        // Global State
+        let allSheetData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let pageSize = 25;
+        let isCompact = false;
+        let isFullscreen = false;
+        let currentAuthToken = localStorage.getItem('thaimass_auth_token');
+
+        // Thai Month Names
+        const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            const d = parseInt(parts[2], 10);
+            const m = parseInt(parts[1], 10);
+            let y = parseInt(parts[0], 10);
+            if (y < 2500) y += 543;
+            return `${d} ${THAI_MONTHS[m] || ''} ${y}`;
+        }
+
+        function formatThaiDateRange(sDate, eDate) {
+            if (!sDate && !eDate) return 'ทั้งหมด';
+            if (sDate === eDate) return formatThaiDate(sDate);
+            return `${formatThaiDate(sDate)} ถึง ${formatThaiDate(eDate)}`;
+        }
+
+        // Pttype Categorization Logic
+        function categorizePttype(name) {
+            name = (name || '').trim();
+            if (name.includes('ต่างด้าว') || name.includes('ปัญหาสถานะ') || name.includes('Migrant')) {
+                return { name: 'ต่างด้าว / ปัญหาสิทธิ', badge: 'bg-purple-subtle text-purple text-dark border' };
+            }
+            if (name.includes('ชำระเงินเอง') || name.includes('เงินสด')) {
+                return { name: 'ชำระเงินเอง', badge: 'bg-success-subtle text-success border-success' };
+            }
+            if (name.includes('ประกันสังคม')) {
+                return { name: 'ประกันสังคม', badge: 'bg-danger-subtle text-danger border-danger' };
+            }
+            if (name.includes('จ่ายตรง') || name.includes('ข้าราชการ') || name.includes('เบิก') || name.includes('อปท') || name.includes('กบก')) {
+                return { name: 'ข้าราชการ / จ่ายตรง / อปท.', badge: 'bg-primary-subtle text-primary border-primary' };
+            }
+            if (name.includes('UC') || name.includes('บัตรทอง') || name.includes('ประกันสุขภาพ') || name.includes('30 บาท') || name.includes('ผู้สูงอายุ') || name.includes('พิการ')) {
+                return { name: 'บัตรทอง (UC)', badge: 'bg-warning-subtle text-dark border-warning' };
+            }
+            return { name: name || 'อื่นๆ', badge: 'bg-light text-dark border' };
+        }
+
+        // JSONP Loader Helper for Google Apps Script Web App
+        function callGasApi(params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'gasCallback_' + Math.round(100000 * Math.random());
+                const queryParams = new URLSearchParams(params);
+                queryParams.set('callback', callbackName);
+                
+                const script = document.createElement('script');
+                script.src = `${GAS_API_URL}?${queryParams.toString()}`;
+                
+                const timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error('การเชื่อมต่อ Google Apps Script หมดเวลา (Timeout)'));
+                }, 25000);
+
+                function cleanup() {
+                    clearTimeout(timeoutId);
+                    if (window[callbackName]) delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                }
+
+                window[callbackName] = function(data) {
+                    cleanup();
+                    resolve(data);
+                };
+
+                script.onerror = function() {
+                    cleanup();
+                    reject(new Error('ไม่สามารถเชื่อมต่อ Google Apps Script ได้'));
+                };
+
+                document.body.appendChild(script);
+            });
+        }
+
+        // UI Loading Indicator
+        function showLoading(text) {
+            const spinner = document.getElementById('loadingSpinner');
+            const label = document.getElementById('loadingText');
+            if (label && text) label.textContent = text;
+            if (spinner) spinner.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            const spinner = document.getElementById('loadingSpinner');
+            if (spinner) spinner.style.display = 'none';
+        }
+
+        // Alert helper
+        function showAlert(type, title, detail) {
+            const box = document.getElementById('alertBox');
+            const icon = document.getElementById('alertIcon');
+            const t = document.getElementById('alertTitle');
+            const d = document.getElementById('alertDetail');
+            
+            box.className = `alert alert-${type} alert-dismissible fade show shadow-sm border-0 d-flex align-items-center mb-4`;
+            icon.className = (type === 'success') ? 'fas fa-check-circle fs-2 text-success me-3' : 'fas fa-exclamation-triangle fs-2 text-danger me-3';
+            t.textContent = title;
+            d.textContent = detail;
+            box.classList.remove('d-none');
+        }
+
+        // ==========================================
+        // 2. Authentication & Login
+        // ==========================================
+        const loginModal = document.getElementById('loginModal');
+        const loginForm = document.getElementById('loginForm');
+        const loginAlert = document.getElementById('loginAlert');
+        const mainApp = document.getElementById('mainApp');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        async function verifySession() {
+            if (!currentAuthToken) {
+                showLoginForm();
+                return;
+            }
+            showLoading('กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...');
+            try {
+                const res = await callGasApi({ action: 'check_auth', token: currentAuthToken });
+                if (res && res.status === 'success') {
+                    hideLoading();
+                    showMainApp();
+                    loadDataFromSheet();
+                } else {
+                    hideLoading();
+                    localStorage.removeItem('thaimass_auth_token');
+                    currentAuthToken = null;
+                    showLoginForm();
+                }
+            } catch (err) {
+                hideLoading();
+                // If offline or network error, fallback to login form
+                showLoginForm();
+            }
+        }
+
+        function showLoginForm() {
+            loginModal.style.display = 'flex';
+            mainApp.style.display = 'none';
+        }
+
+        function showMainApp() {
+            loginModal.style.display = 'none';
+            mainApp.style.display = 'block';
+        }
+
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+            loginAlert.classList.add('d-none');
+            showLoading('กำลังตรวจสอบชื่อผู้ใช้และรหัสผ่าน...');
+
+            try {
+                const res = await callGasApi({
+                    action: 'login',
+                    username: username,
+                    password: password
+                });
+                hideLoading();
+
+                if (res && res.status === 'success') {
+                    currentAuthToken = res.token;
+                    localStorage.setItem('thaimass_auth_token', currentAuthToken);
+                    showMainApp();
+                    loadDataFromSheet();
+                } else {
+                    loginAlert.textContent = res.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                    loginAlert.classList.remove('d-none');
+                }
+            } catch (err) {
+                hideLoading();
+                loginAlert.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง';
+                loginAlert.classList.remove('d-none');
+            }
+        });
+
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('ยืนยันออกจากระบบ?')) {
+                localStorage.removeItem('thaimass_auth_token');
+                currentAuthToken = null;
+                showLoginForm();
+            }
+        });
+
+        // ==========================================
+        // 3. Data Fetching & Processing
+        // ==========================================
+        async function loadDataFromSheet() {
+            showLoading('กำลังโหลดข้อมูลจาก Google Sheet...');
+            try {
+                const res = await callGasApi({
+                    action: 'get_data',
+                    token: currentAuthToken,
+                    sheet_id: SPREADSHEET_ID,
+                    sheet_name: SHEET_NAME
+                });
+                hideLoading();
+
+                if (res && res.status === 'success') {
+                    allSheetData = res.data || [];
+                    initDatePickers();
+                    filterAndRender();
+                } else {
+                    if (res && res.status === 'unauthorized') {
+                        localStorage.removeItem('thaimass_auth_token');
+                        currentAuthToken = null;
+                        showLoginForm();
+                        return;
+                    }
+                    showAlert('danger', 'เกิดข้อผิดพลาด', res.message || 'ไม่สามารถดึงข้อมูลได้');
+                }
+            } catch (err) {
+                hideLoading();
+                showAlert('danger', 'ไม่สามารถเชื่อมต่อได้', err.message);
+            }
+        }
+
+        // Initialize default dates
+        function initDatePickers() {
+            if (allSheetData.length > 0) {
+                // หา service_date ล่าสุดที่มีในชีต
+                const dates = allSheetData.map(r => r.service_date).filter(Boolean).sort();
+                const latestDate = dates[dates.length - 1];
+                document.getElementById('startDateInput').value = latestDate || new Date().toISOString().split('T')[0];
+                document.getElementById('endDateInput').value = latestDate || new Date().toISOString().split('T')[0];
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('startDateInput').value = today;
+                document.getElementById('endDateInput').value = today;
+            }
+        }
+
+        // Filter and Calculate Aggregates
+        function filterAndRender() {
+            const startDate = document.getElementById('startDateInput').value;
+            const endDate = document.getElementById('endDateInput').value;
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            filteredData = allSheetData.filter(item => {
+                const itemDate = item.service_date || '';
+                // Date range check
+                if (startDate && itemDate < startDate) return false;
+                if (endDate && itemDate > endDate) return false;
+
+                // Search query check
+                if (searchQuery) {
+                    const rowText = [
+                        item.patient_name,
+                        item.hn,
+                        item.vn,
+                        item.cid,
+                        item.pttype_name,
+                        item.dx,
+                        item.cc,
+                        item.operations,
+                        item.ttm_drugs
+                    ].join(' ').toLowerCase();
+                    if (!rowText.includes(searchQuery)) return false;
+                }
+                return true;
+            });
+
+            // Sort by service_date ascending, service_time ascending
+            filteredData.sort((a, b) => {
+                if (a.service_date !== b.service_date) {
+                    return a.service_date.localeCompare(b.service_date);
+                }
+                return (a.service_time || '').localeCompare(b.service_time || '');
+            });
+
+            updateKPIs();
+            renderTable();
+        }
+
+        // Calculate KPIs & Groupings
+        function updateKPIs() {
+            const totalVisits = filteredData.length;
+            const uniqueHns = new Set();
+            let totalMassage = 0;
+            let totalDrug = 0;
+            let totalPhysical = 0;
+            let totalIncomeNoPt = 0;
+            let totalBill = 0;
+
+            const catStats = {};
+            const opStats = {};
+            const dxStats = {};
+
+            filteredData.forEach(row => {
+                if (row.hn) uniqueHns.add(row.hn);
+                totalMassage += parseFloat(row.inc_massage) || 0;
+                totalDrug += parseFloat(row.inc_drug) || 0;
+                totalPhysical += parseFloat(row.inc_physical) || 0;
+                totalIncomeNoPt += parseFloat(row.inc_ttm_no_pt) || 0;
+                totalBill += parseFloat(row.total_price) || 0;
+
+                // Category Count
+                const cat = categorizePttype(row.pttype_name);
+                if (!catStats[cat.name]) {
+                    catStats[cat.name] = { count: 0, income: 0, badge: cat.badge };
+                }
+                catStats[cat.name].count++;
+                catStats[cat.name].income += parseFloat(row.inc_ttm_no_pt) || 0;
+
+                // Operations Count
+                if (row.operations && row.operations !== '-') {
+                    const ops = row.operations.split(',');
+                    ops.forEach(op => {
+                        const name = op.trim();
+                        if (name) {
+                            if (!opStats[name]) opStats[name] = { count: 0, patients: new Set() };
+                            opStats[name].count++;
+                            if (row.hn) opStats[name].patients.add(row.hn);
+                        }
+                    });
+                }
+
+                // DX Count
+                if (row.dx && row.dx !== '-' && row.dx !== 'ยังไม่ลงรหัส') {
+                    const dxs = row.dx.split(',');
+                    dxs.forEach(dxItem => {
+                        const d = dxItem.trim();
+                        if (d) {
+                            if (!dxStats[d]) dxStats[d] = 0;
+                            dxStats[d]++;
+                        }
+                    });
+                }
+            });
+
+            // Set KPI Cards
+            document.getElementById('kpiVisits').textContent = totalVisits.toLocaleString();
+            document.getElementById('kpiPatients').textContent = uniqueHns.size.toLocaleString();
+            document.getElementById('kpiIncomeNoPt').textContent = totalIncomeNoPt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('kpiMassage').textContent = Math.round(totalMassage).toLocaleString();
+            document.getElementById('kpiDrug').textContent = Math.round(totalDrug).toLocaleString();
+            document.getElementById('kpiPhysical').textContent = totalPhysical.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('kpiTotalBill').textContent = Math.round(totalBill).toLocaleString();
+
+            // Footer summaries
+            document.getElementById('footerTotalRows').textContent = totalVisits.toLocaleString();
+            document.getElementById('footerIncomeNoPt').textContent = totalIncomeNoPt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('footerMassage').textContent = Math.round(totalMassage).toLocaleString();
+            document.getElementById('footerDrug').textContent = Math.round(totalDrug).toLocaleString();
+
+            // Render Rights Category Badges
+            const catContainer = document.getElementById('catStatsContainer');
+            catContainer.innerHTML = '<span class="small fw-bold text-secondary me-2"><i class="fas fa-id-card me-1"></i> จำแนกตามกลุ่มสิทธิ:</span>';
+            const sortedCats = Object.keys(catStats).sort((a, b) => catStats[b].count - catStats[a].count);
+            sortedCats.forEach(catName => {
+                const st = catStats[catName];
+                const badge = document.createElement('div');
+                badge.className = 'badge bg-white text-dark border px-3 py-2 shadow-xs d-flex align-items-center gap-2';
+                badge.style.borderRadius = '8px';
+                badge.style.fontSize = '0.85rem';
+                badge.innerHTML = `<span>${catName}:</span><b class="text-primary">${st.count} ราย</b><span class="text-muted small">(${Math.round(st.income).toLocaleString()} บ.)</span>`;
+                catContainer.appendChild(badge);
+            });
+
+            // Render Operations List
+            const opsList = document.getElementById('operationsList');
+            const opKeys = Object.keys(opStats).sort((a, b) => opStats[b].count - opStats[a].count);
+            document.getElementById('opsTotalCount').textContent = opKeys.length;
+            opsList.innerHTML = '';
+            if (opKeys.length === 0) {
+                opsList.innerHTML = '<li class="list-group-item text-muted py-2">ไม่มีข้อมูลหัตถการ</li>';
+            } else {
+                opKeys.forEach(opName => {
+                    const item = opStats[opName];
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-2';
+                    li.innerHTML = `<span>${opName}</span><span class="badge bg-success-subtle text-success rounded-pill">${item.count.toLocaleString()} ครั้ง (${item.patients.size} คน)</span>`;
+                    opsList.appendChild(li);
+                });
+            }
+
+            // Render Diagnosis List (Top 10)
+            const dxList = document.getElementById('diagnosisList');
+            const dxKeys = Object.keys(dxStats).sort((a, b) => dxStats[b] - dxStats[a]).slice(0, 10);
+            dxList.innerHTML = '';
+            if (dxKeys.length === 0) {
+                dxList.innerHTML = '<li class="list-group-item text-muted py-2">ไม่มีข้อมูลโรค</li>';
+            } else {
+                dxKeys.forEach(dxName => {
+                    const cnt = dxStats[dxName];
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-2';
+                    li.innerHTML = `<span>${dxName}</span><span class="badge bg-primary-subtle text-primary rounded-pill">${cnt} ราย</span>`;
+                    dxList.appendChild(li);
+                });
+            }
+        }
+
+        // ==========================================
+        // 4. Table Rendering & Pagination
+        // ==========================================
+        function renderTable() {
+            const tableBody = document.getElementById('tableBody');
+            const totalFiltered = filteredData.length;
+            document.getElementById('totalRowsCount').textContent = totalFiltered;
+
+            let totalPages = 1;
+            if (pageSize === 'all') {
+                totalPages = 1;
+            } else {
+                totalPages = Math.ceil(totalFiltered / pageSize) || 1;
+            }
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (pageSize === 'all') ? 0 : (currentPage - 1) * pageSize;
+            const endIndex = (pageSize === 'all') ? totalFiltered : Math.min(startIndex + pageSize, totalFiltered);
+
+            tableBody.innerHTML = '';
+
+            if (totalFiltered === 0) {
+                const startDate = document.getElementById('startDateInput').value;
+                const endDate = document.getElementById('endDateInput').value;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="17" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        ไม่พบข้อมูลการให้บริการแพทย์แผนไทยในช่วงวันที่ ${formatThaiDateRange(startDate, endDate)}
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+                document.getElementById('pageInfoText').textContent = 'ไม่พบข้อมูลที่ตรงกับการค้นหา';
+                renderPaginationButtons(1);
+                return;
+            }
+
+            document.getElementById('pageInfoText').textContent = `แสดงแถว ${startIndex + 1} - ${endIndex} จากทั้งหมด ${totalFiltered} รายการ`;
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const row = filteredData[i];
+                const tr = document.createElement('tr');
+                tr.className = 'data-row';
+
+                // Drug tags badge rendering
+                let drugsHtml = '<span class="text-muted small">-</span>';
+                if (row.ttm_drugs && row.ttm_drugs !== '-') {
+                    drugsHtml = row.ttm_drugs.split(',').map(d => {
+                        return `<span class="drug-tag"><i class="fas fa-pills me-1 text-success"></i>${d.trim()}</span>`;
+                    }).join('');
+                }
+
+                // Rights Badge
+                const cat = categorizePttype(row.pttype_name);
+
+                tr.innerHTML = `
+                    <td class="text-center text-muted fw-semibold col-no">${i + 1}</td>
+                    <td class="text-center small text-secondary font-monospace">${row.service_date ? row.service_date.substring(5) : '-'}</td>
+                    <td class="text-center fw-semibold text-primary">${row.service_time ? row.service_time.substring(0, 5) : '-'} น.</td>
+                    <td class="fw-bold">${row.patient_name || 'ไม่ระบุชื่อ'}</td>
+                    <td class="text-center font-monospace small text-secondary">${row.cid || '-'}</td>
+                    <td class="text-center font-monospace text-success fw-bold">${row.hn || '-'}</td>
+                    <td class="text-center font-monospace small text-muted">${row.vn || '-'}</td>
+                    <td>
+                        <div class="small fw-semibold text-dark">${row.pttype_name || '-'}</div>
+                        <span class="badge badge-cat ${cat.badge}">${cat.name}</span>
+                    </td>
+                    <td><div class="small text-danger fw-semibold">${row.dx || '-'}</div></td>
+                    <td><div class="small text-secondary">${row.cc || '-'}</div></td>
+                    <td><div class="small text-dark fw-medium">${row.operations || '-'}</div></td>
+                    <td>${drugsHtml}</td>
+                    <td class="text-end font-monospace">${row.inc_massage > 0 ? parseFloat(row.inc_massage).toFixed(2) : '-'}</td>
+                    <td class="text-end font-monospace">${row.inc_drug > 0 ? parseFloat(row.inc_drug).toFixed(2) : '-'}</td>
+                    <td class="text-end font-monospace text-muted">${row.inc_physical > 0 ? `<span class="badge bg-secondary-subtle text-secondary">${parseFloat(row.inc_physical).toFixed(2)}</span>` : '-'}</td>
+                    <td class="text-end font-monospace fw-bold text-success bg-success-subtle bg-opacity-25">${(parseFloat(row.inc_ttm_no_pt) || 0).toFixed(2)}</td>
+                    <td class="text-end font-monospace text-secondary small">${(parseFloat(row.total_price) || 0).toFixed(2)}</td>
+                `;
+                tableBody.appendChild(tr);
+            }
+
+            renderPaginationButtons(totalPages);
+        }
+
+        function renderPaginationButtons(totalPages) {
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            // Previous
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="Previous">&laquo;</a>`;
+            prevLi.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable();
+                }
+            });
+            paginationControls.appendChild(prevLi);
+
+            // Numbers
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                addPageBtn(1);
+                if (startPage > 2) addEllipsis();
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                addPageBtn(p);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) addEllipsis();
+                addPageBtn(totalPages);
+            }
+
+            // Next
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="Next">&raquo;</a>`;
+            nextLi.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable();
+                }
+            });
+            paginationControls.appendChild(nextLi);
+        }
+
+        function addPageBtn(pageNum) {
+            const li = document.createElement('li');
+            li.className = `page-item ${currentPage === pageNum ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="javascript:void(0)">${pageNum}</a>`;
+            li.addEventListener('click', () => {
+                currentPage = pageNum;
+                renderTable();
+            });
+            document.getElementById('paginationControls').appendChild(li);
+        }
+
+        function addEllipsis() {
+            const li = document.createElement('li');
+            li.className = 'page-item disabled';
+            li.innerHTML = `<span class="page-link">...</span>`;
+            document.getElementById('paginationControls').appendChild(li);
+        }
+
+        // ==========================================
+        // 5. Event Listeners & UI Controls
+        // ==========================================
+        document.getElementById('pageSizeSelect').addEventListener('change', function() {
+            pageSize = (this.value === 'all') ? 'all' : parseInt(this.value, 10);
+            currentPage = 1;
+            renderTable();
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function() {
+            currentPage = 1;
+            filterAndRender();
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            currentPage = 1;
+            filterAndRender();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDateInput').value = today;
+            document.getElementById('endDateInput').value = today;
+            currentPage = 1;
+            filterAndRender();
+        });
+
+        document.getElementById('allDatesBtn').addEventListener('click', function() {
+            document.getElementById('startDateInput').value = '';
+            document.getElementById('endDateInput').value = '';
+            currentPage = 1;
+            filterAndRender();
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadDataFromSheet();
+        });
+
+        // Compact Density Mode
+        const toggleDensityBtn = document.getElementById('toggleDensityBtn');
+        const dataTable = document.getElementById('dataTable');
+        toggleDensityBtn.addEventListener('click', function() {
+            isCompact = !isCompact;
+            if (isCompact) {
+                dataTable.classList.add('table-compact');
+                this.innerHTML = '<i class="fas fa-expand-arrows-alt me-1"></i> ขยายช่อง';
+            } else {
+                dataTable.classList.remove('table-compact');
+                this.innerHTML = '<i class="fas fa-compress-arrows-alt me-1"></i> ย่อช่อง';
+            }
+        });
+
+        // Fullscreen Toggle
+        const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+        const mainTableCard = document.getElementById('mainTableCard');
+        toggleFullscreenBtn.addEventListener('click', function() {
+            isFullscreen = !isFullscreen;
+            if (isFullscreen) {
+                mainTableCard.classList.add('is-fullscreen');
+                this.innerHTML = '<i class="fas fa-compress me-1"></i> ย่อขนาด';
+                this.classList.replace('btn-outline-secondary', 'btn-secondary');
+            } else {
+                mainTableCard.classList.remove('is-fullscreen');
+                this.innerHTML = '<i class="fas fa-expand me-1"></i> เต็มจอ';
+                this.classList.replace('btn-secondary', 'btn-outline-secondary');
+            }
+        });
+
+        // Column Resizing via mouse drag
+        const resizers = document.querySelectorAll('#dataTable .resizer');
+        resizers.forEach(resizer => {
+            let startX, startWidth, th;
+            resizer.addEventListener('mousedown', function(e) {
+                th = this.parentElement;
+                startX = e.pageX;
+                startWidth = th.offsetWidth;
+                resizer.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+
+                function onMouseMove(e) {
+                    const newWidth = Math.max(35, startWidth + (e.pageX - startX));
+                    th.style.width = newWidth + 'px';
+                    th.style.minWidth = newWidth + 'px';
+                }
+
+                function onMouseUp() {
+                    resizer.classList.remove('resizing');
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+
+        // Start verify
+        verifySession();
+    })();
+    </script>
+</body>
+</html>
