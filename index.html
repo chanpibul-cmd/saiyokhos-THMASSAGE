@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบส่งและตรวจสอบข้อมูลแพทย์แผนไทย (Google Sheet & Telegram) - โรงพยาบาลไทรโยค</title>
-    <!-- Google Fonts & Bootstrap 5 & FontAwesome -->
+    <title>ระบบส่งและตรวจสอบข้อมูลแพทย์แผนไทย - โรงพยาบาลไทรโยค</title>
+    <!-- Google Fonts & Bootstrap 5 & FontAwesome & Chart.js -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body { 
             background-color: #f0fdf4; 
@@ -126,6 +127,32 @@
             white-space: nowrap;
         }
 
+        /* Tab Navigation */
+        .nav-tabs-custom {
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 22px;
+            gap: 8px;
+        }
+        .nav-tabs-custom .nav-link {
+            border: none;
+            border-radius: 10px 10px 0 0;
+            color: #64748b;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.2s;
+            background: transparent;
+        }
+        .nav-tabs-custom .nav-link:hover {
+            color: #059669;
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .nav-tabs-custom .nav-link.active {
+            color: #059669;
+            background: white;
+            border-bottom: 3px solid #059669;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.03);
+        }
+
         /* Login Modal & Overlay */
         .login-overlay {
             position: fixed;
@@ -175,6 +202,11 @@
             flex-direction: column;
             backdrop-filter: blur(2px);
         }
+        .chart-box {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -220,7 +252,7 @@
                         <i class="fas fa-sign-in-alt me-1"></i> เข้าสู่ระบบ
                     </button>
                     <div class="text-center mt-3 text-muted small">
-                        เข้าสู่ระบบเพื่อเข้าถึงข้อมูลชีต <code>DATA</code>
+                        เข้าสู่ระบบเพื่อเข้าถึงข้อมูลแพทย์แผนไทย
                     </div>
                 </form>
             </div>
@@ -248,7 +280,7 @@
                     <h4 class="fw-bold mb-0">ระบบส่งข้อมูลแพทย์แผนไทย (Thai Traditional Medicine)</h4>
                 </div>
                 <div class="opacity-90 small">
-                    <i class="fas fa-hospital me-1"></i> โรงพยาบาลไทรโยค | บันทึกลง Google Sheet (DATA: <code>1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E</code>)
+                    <i class="fas fa-hospital me-1"></i> โรงพยาบาลไทรโยค
                 </div>
             </div>
             
@@ -280,168 +312,340 @@
             </div>
         </div>
 
-        <!-- KPI Cards -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card border-start border-4 border-success">
-                    <div class="text-muted small fw-semibold">จำนวนครั้งที่รับบริการ</div>
-                    <div class="d-flex align-items-baseline justify-content-between mt-2">
-                        <div class="fs-2 fw-bold text-success" id="kpiVisits">0</div>
-                        <span class="badge bg-success-subtle text-success">ครั้ง</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card border-start border-4 border-primary">
-                    <div class="text-muted small fw-semibold">จำนวนผู้รับบริการ (คน)</div>
-                    <div class="d-flex align-items-baseline justify-content-between mt-2">
-                        <div class="fs-2 fw-bold text-primary" id="kpiPatients">0</div>
-                        <span class="badge bg-primary-subtle text-primary">ราย</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card border-start border-4 border-success bg-success-subtle bg-opacity-25">
-                    <div class="text-muted small fw-semibold">รวมค่ารักษา (ไม่รวมกายภาพ)</div>
-                    <div class="d-flex align-items-baseline justify-content-between mt-2">
-                        <div class="fs-2 fw-bold text-success" id="kpiIncomeNoPt">0.00</div>
-                        <span class="badge bg-success text-white">บาท</span>
-                    </div>
-                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                        นวด: <b id="kpiMassage">0</b> | ยา: <b id="kpiDrug">0</b> บ.
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card border-start border-4 border-secondary">
-                    <div class="text-muted small fw-semibold">ยอดกายภาพพ่วง (ไม่คิดรวม)</div>
-                    <div class="d-flex align-items-baseline justify-content-between mt-2">
-                        <div class="fs-2 fw-bold text-secondary" id="kpiPhysical">0.00</div>
-                        <span class="badge bg-secondary-subtle text-secondary">บาท</span>
-                    </div>
-                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                        รวมทั้งสิ้นในบิล: <b id="kpiTotalBill">0</b> บ.
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Navigation Tabs: รายการผู้รับบริการ, Dashboard รายวัน, Dashboard รายเดือน -->
+        <ul class="nav nav-tabs nav-tabs-custom" id="viewTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="tab-table-btn" data-bs-toggle="tab" data-bs-target="#tab-table" type="button" role="tab">
+                    <i class="fas fa-table me-1"></i> รายการผู้รับบริการ
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-daily-btn" data-bs-toggle="tab" data-bs-target="#tab-daily" type="button" role="tab">
+                    <i class="fas fa-chart-line me-1"></i> Dashboard รายวัน
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="tab-monthly-btn" data-bs-toggle="tab" data-bs-target="#tab-monthly" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-1"></i> Dashboard รายเดือน
+                </button>
+            </li>
+        </ul>
 
-        <!-- Rights Category Badges -->
-        <div id="catStatsContainer" class="d-flex flex-wrap gap-2 mb-4 align-items-center">
-            <span class="small fw-bold text-secondary me-2"><i class="fas fa-id-card me-1"></i> จำแนกตามกลุ่มสิทธิ:</span>
-            <!-- Rendered by JS -->
-        </div>
+        <!-- Tab Contents -->
+        <div class="tab-content" id="viewTabContent">
 
-        <!-- Operations & ICD-10 Summaries -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
-                    <div class="card-header bg-white py-2 px-3 fw-bold text-success border-bottom-0 d-flex justify-content-between align-items-center">
-                        <div><i class="fas fa-hands me-1"></i> กลุ่มหัตถการ (<span id="opsTotalCount">0</span> รายการ)</div>
-                    </div>
-                    <div class="card-body p-3 pt-0">
-                        <ul class="list-group list-group-flush small" id="operationsList">
-                            <li class="list-group-item text-muted py-2">ไม่มีข้อมูลหัตถการ</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
-                    <div class="card-header bg-white py-2 px-3 fw-bold text-primary border-bottom-0 d-flex justify-content-between align-items-center">
-                        <div><i class="fas fa-stethoscope me-1"></i> กลุ่มโรคที่พบบ่อย (10 อันดับแรก)</div>
-                    </div>
-                    <div class="card-body p-3 pt-0">
-                        <ul class="list-group list-group-flush small" id="diagnosisList">
-                            <li class="list-group-item text-muted py-2">ไม่มีข้อมูลโรค</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+            <!-- TAB 1: รายการผู้รับบริการ และ สรุปภาพรวม -->
+            <div class="tab-pane fade show active" id="tab-table" role="tabpanel">
 
-        <!-- Patient Data Table -->
-        <div class="card-main" id="mainTableCard">
-            <div class="card-header bg-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div class="fw-bold text-dark d-flex align-items-center gap-2">
-                        <i class="fas fa-list-ol text-success"></i> 
-                        รายการผู้รับบริการแพทย์แผนไทย (<span id="totalRowsCount">0</span> รายการ)
+                <!-- KPI Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card border-start border-4 border-success">
+                            <div class="text-muted small fw-semibold">จำนวนครั้งที่รับบริการ</div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-2">
+                                <div class="fs-2 fw-bold text-success" id="kpiVisits">0</div>
+                                <span class="badge bg-success-subtle text-success">ครั้ง</span>
+                            </div>
+                        </div>
                     </div>
-                    <!-- Page Size Selector: 15, 25, 50, 100, All -->
-                    <div class="d-flex align-items-center gap-1 small">
-                        <label class="text-muted fw-semibold mb-0" for="pageSizeSelect">แสดง:</label>
-                        <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto; font-weight: 500;">
-                            <option value="15">15 แถว</option>
-                            <option value="25" selected>25 แถว</option>
-                            <option value="50">50 แถว</option>
-                            <option value="100">100 แถว</option>
-                            <option value="all">ทั้งหมด</option>
-                        </select>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card border-start border-4 border-primary">
+                            <div class="text-muted small fw-semibold">จำนวนผู้รับบริการ (คน)</div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-2">
+                                <div class="fs-2 fw-bold text-primary" id="kpiPatients">0</div>
+                                <span class="badge bg-primary-subtle text-primary">ราย</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card border-start border-4 border-success bg-success-subtle bg-opacity-25">
+                            <div class="text-muted small fw-semibold">รวมค่ารักษา (ไม่รวมกายภาพ)</div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-2">
+                                <div class="fs-2 fw-bold text-success" id="kpiIncomeNoPt">0.00</div>
+                                <span class="badge bg-success text-white">บาท</span>
+                            </div>
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                นวด: <b id="kpiMassage">0</b> | ยา: <b id="kpiDrug">0</b> บ.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-card border-start border-4 border-secondary">
+                            <div class="text-muted small fw-semibold">ยอดกายภาพพ่วง (ไม่คิดรวม)</div>
+                            <div class="d-flex align-items-baseline justify-content-between mt-2">
+                                <div class="fs-2 fw-bold text-secondary" id="kpiPhysical">0.00</div>
+                                <span class="badge bg-secondary-subtle text-secondary">บาท</span>
+                            </div>
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                รวมทั้งสิ้นในบิล: <b id="kpiTotalBill">0</b> บ.
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <!-- Table Density & Fullscreen -->
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" id="toggleDensityBtn" class="btn btn-outline-secondary" title="ปรับระยะห่างตาราง (ปกติ / กะทัดรัด)">
-                            <i class="fas fa-compress-arrows-alt me-1"></i> ย่อช่อง
-                        </button>
-                        <button type="button" id="toggleFullscreenBtn" class="btn btn-outline-secondary" title="ขยายเต็มหน้าจอ">
-                            <i class="fas fa-expand me-1"></i> เต็มจอ
-                        </button>
+                <!-- Rights Category Badges -->
+                <div id="catStatsContainer" class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+                    <span class="small fw-bold text-secondary me-2"><i class="fas fa-id-card me-1"></i> จำแนกตามกลุ่มสิทธิ:</span>
+                </div>
+
+                <!-- Operations & ICD-10 Summaries & Herbal Drugs Dashboard -->
+                <div class="row g-3 mb-4">
+                    <!-- กลุ่มหัตถการ -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white py-2 px-3 fw-bold text-success border-bottom-0 d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-hands me-1"></i> กลุ่มหัตถการ (<span id="opsTotalCount">0</span>)</div>
+                            </div>
+                            <div class="card-body p-3 pt-0" style="max-height: 280px; overflow-y: auto;">
+                                <ul class="list-group list-group-flush small" id="operationsList">
+                                    <li class="list-group-item text-muted py-2">ไม่มีข้อมูลหัตถการ</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- กลุ่มโรคที่พบบ่อย -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white py-2 px-3 fw-bold text-primary border-bottom-0 d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-stethoscope me-1"></i> กลุ่มโรคที่พบบ่อย (<span id="dxTotalCount">0</span>)</div>
+                            </div>
+                            <div class="card-body p-3 pt-0" style="max-height: 280px; overflow-y: auto;">
+                                <ul class="list-group list-group-flush small" id="diagnosisList">
+                                    <li class="list-group-item text-muted py-2">ไม่มีข้อมูลโรค</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ยาสมุนไพร / ยาแผนไทย Dashboard -->
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm" style="border-radius: 12px;">
+                            <div class="card-header bg-white py-2 px-3 fw-bold text-emerald border-bottom-0 d-flex justify-content-between align-items-center" style="color: #047857;">
+                                <div><i class="fas fa-pills me-1"></i> ยาสมุนไพร / ยาแผนไทย (<span id="drugsTotalCount">0</span>)</div>
+                            </div>
+                            <div class="card-body p-3 pt-0" style="max-height: 280px; overflow-y: auto;">
+                                <ul class="list-group list-group-flush small" id="drugsList">
+                                    <li class="list-group-item text-muted py-2">ไม่มีข้อมูลยาแผนไทย</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Data Table -->
+                <div class="card-main" id="mainTableCard">
+                    <div class="card-header bg-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                <i class="fas fa-list-ol text-success"></i> 
+                                รายการผู้รับบริการแพทย์แผนไทย (<span id="totalRowsCount">0</span> รายการ)
+                            </div>
+                            <!-- Page Size Selector: 15, 25, 50, 100, All -->
+                            <div class="d-flex align-items-center gap-1 small">
+                                <label class="text-muted fw-semibold mb-0" for="pageSizeSelect">แสดง:</label>
+                                <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto; font-weight: 500;">
+                                    <option value="15">15 แถว</option>
+                                    <option value="25" selected>25 แถว</option>
+                                    <option value="50">50 แถว</option>
+                                    <option value="100">100 แถว</option>
+                                    <option value="all">ทั้งหมด</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <!-- Table Density & Fullscreen -->
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" id="toggleDensityBtn" class="btn btn-outline-secondary" title="ปรับระยะห่างตาราง (ปกติ / กะทัดรัด)">
+                                    <i class="fas fa-compress-arrows-alt me-1"></i> ย่อช่อง
+                                </button>
+                                <button type="button" id="toggleFullscreenBtn" class="btn btn-outline-secondary" title="ขยายเต็มหน้าจอ">
+                                    <i class="fas fa-expand me-1"></i> เต็มจอ
+                                </button>
+                            </div>
+                            
+                            <input type="text" id="searchInput" class="form-control form-control-sm search-input" placeholder="🔍 ค้นหา ชื่อ, HN, VN, ยา, หัตถการ...">
+                            
+                            <a id="sheetLinkBtn" href="https://docs.google.com/spreadsheets/d/1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E/edit" target="_blank" class="btn btn-outline-success btn-sm shadow-xs fw-semibold">
+                                <i class="fas fa-external-link-alt me-1"></i> เปิด Google Sheet
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" id="tableWrapper" style="max-height: 650px;">
+                        <table class="table table-hover table-bordered align-middle mb-0 resizable-table" id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">ลำดับ<div class="resizer"></div></th>
+                                    <th class="text-center" style="width: 105px;">วันที่<div class="resizer"></div></th>
+                                    <th class="text-center" style="width: 70px;">เวลา<div class="resizer"></div></th>
+                                    <th style="min-width: 140px;">ชื่อ-นามสกุล<div class="resizer"></div></th>
+                                    <th class="text-center" style="width: 125px;">เลขบัตรประชาชน<div class="resizer"></div></th>
+                                    <th class="text-center" style="width: 75px;">HN<div class="resizer"></div></th>
+                                    <th class="text-center" style="width: 90px;">VN<div class="resizer"></div></th>
+                                    <th style="min-width: 130px;">สิทธิการรักษา<div class="resizer"></div></th>
+                                    <th style="min-width: 150px;">DX (การวินิจฉัย)<div class="resizer"></div></th>
+                                    <th style="min-width: 130px;">CC (อาการสำคัญ)<div class="resizer"></div></th>
+                                    <th style="min-width: 160px;">หัตถการ<div class="resizer"></div></th>
+                                    <th style="min-width: 170px;">ยาแผนไทย (จำนวน)<div class="resizer"></div></th>
+                                    <th class="text-end" style="width: 80px;">ค่านวด<div class="resizer"></div></th>
+                                    <th class="text-end" style="width: 80px;">ค่ายา<div class="resizer"></div></th>
+                                    <th class="text-end text-muted" style="width: 85px;">ค่ากายภาพ<div class="resizer"></div></th>
+                                    <th class="text-end bg-success-subtle fw-bold text-success" style="width: 110px;">รวม (ไม่รวมกายภาพ)<div class="resizer"></div></th>
+                                    <th class="text-end text-secondary" style="width: 95px;">รวมทั้งสิ้น<div class="resizer"></div></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Loaded dynamically via JS -->
+                            </tbody>
+                        </table>
                     </div>
                     
-                    <input type="text" id="searchInput" class="form-control form-control-sm search-input" placeholder="🔍 ค้นหา ชื่อ, HN, VN, ยา, หัตถการ...">
-                    
-                    <a id="sheetLinkBtn" href="https://docs.google.com/spreadsheets/d/1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E/edit" target="_blank" class="btn btn-outline-success btn-sm shadow-xs fw-semibold">
-                        <i class="fas fa-external-link-alt me-1"></i> เปิด Google Sheet
-                    </a>
+                    <div class="card-footer bg-light py-2 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small">
+                        <!-- Pagination info & controls -->
+                        <div class="d-flex align-items-center gap-2">
+                            <span id="pageInfoText">แสดงแถว 0 - 0 จากทั้งหมด 0 แถว</span>
+                            <nav aria-label="Page navigation" class="ms-2">
+                                <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                                </ul>
+                            </nav>
+                        </div>
+                        <div>
+                            รวมทั้งสิ้น <b id="footerTotalRows">0</b> รายการ | รวมแผนไทย: <b class="text-success" id="footerIncomeNoPt">0.00</b> บาท (นวด: <span id="footerMassage">0</span> | ยา: <span id="footerDrug">0</span> บ.)
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="table-responsive" id="tableWrapper" style="max-height: 650px;">
-                <table class="table table-hover table-bordered align-middle mb-0 resizable-table" id="dataTable">
-                    <thead>
-                        <tr>
-                            <th class="text-center" style="width: 50px;">ลำดับ<div class="resizer"></div></th>
-                            <th class="text-center" style="width: 95px;">วันที่<div class="resizer"></div></th>
-                            <th class="text-center" style="width: 70px;">เวลา<div class="resizer"></div></th>
-                            <th style="min-width: 140px;">ชื่อ-นามสกุล<div class="resizer"></div></th>
-                            <th class="text-center" style="width: 125px;">เลขบัตรประชาชน<div class="resizer"></div></th>
-                            <th class="text-center" style="width: 75px;">HN<div class="resizer"></div></th>
-                            <th class="text-center" style="width: 90px;">VN<div class="resizer"></div></th>
-                            <th style="min-width: 130px;">สิทธิการรักษา<div class="resizer"></div></th>
-                            <th style="min-width: 150px;">DX (การวินิจฉัย)<div class="resizer"></div></th>
-                            <th style="min-width: 130px;">CC (อาการสำคัญ)<div class="resizer"></div></th>
-                            <th style="min-width: 160px;">หัตถการ<div class="resizer"></div></th>
-                            <th style="min-width: 170px;">ยาแผนไทย (จำนวน)<div class="resizer"></div></th>
-                            <th class="text-end" style="width: 80px;">ค่านวด<div class="resizer"></div></th>
-                            <th class="text-end" style="width: 80px;">ค่ายา<div class="resizer"></div></th>
-                            <th class="text-end text-muted" style="width: 85px;">ค่ากายภาพ<div class="resizer"></div></th>
-                            <th class="text-end bg-success-subtle fw-bold text-success" style="width: 110px;">รวม (ไม่รวมกายภาพ)<div class="resizer"></div></th>
-                            <th class="text-end text-secondary" style="width: 95px;">รวมทั้งสิ้น<div class="resizer"></div></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- Loaded dynamically via JS -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="card-footer bg-light py-2 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small">
-                <!-- Pagination info & controls -->
-                <div class="d-flex align-items-center gap-2">
-                    <span id="pageInfoText">แสดงแถว 0 - 0 จากทั้งหมด 0 แถว</span>
-                    <nav aria-label="Page navigation" class="ms-2">
-                        <ul class="pagination pagination-sm mb-0" id="paginationControls">
-                        </ul>
-                    </nav>
+            <!-- TAB 2: Dashboard รายวัน (Daily Charts) -->
+            <div class="tab-pane fade" id="tab-daily" role="tabpanel">
+                <div class="row g-4 mb-4">
+                    <!-- กราฟคนไข้รายวันแยกตามสิทธิ -->
+                    <div class="col-lg-12">
+                        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-chart-bar me-2"></i> จำนวนผู้รับบริการรายวัน (แยกตามสิทธิการรักษา)</div>
+                                <span class="badge bg-success-subtle text-success" id="dailyDateRangeLabel">-</span>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="dailyPttypeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    รวมทั้งสิ้น <b id="footerTotalRows">0</b> รายการ | รวมแผนไทย: <b class="text-success" id="footerIncomeNoPt">0.00</b> บาท (นวด: <span id="footerMassage">0</span> | ยา: <span id="footerDrug">0</span> บ.)
+
+                <div class="row g-4 mb-4">
+                    <!-- กราฟกลุ่มหัตถการยอดนิยมรายวัน -->
+                    <div class="col-lg-6">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-hands me-2 text-success"></i> กลุ่มหัตถการ (จำนวนครั้งที่ทำ)
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="dailyOpsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- กราฟกลุ่มโรคที่พบบ่อยรายวัน -->
+                    <div class="col-lg-6">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-stethoscope me-2 text-primary"></i> กลุ่มโรคที่พบบ่อย (ICD-10)
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="dailyDxChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- กราฟยาสมุนไพรรายวัน -->
+                    <div class="col-lg-12">
+                        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-pills me-2 text-emerald" style="color: #059669;"></i> ปริมาณการใช้ยาสมุนไพร / ยาแผนไทย (จำนวนหน่วยที่จ่าย)
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box" style="height: 360px;">
+                                    <canvas id="dailyDrugsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- TAB 3: Dashboard รายเดือน (Monthly Charts) -->
+            <div class="tab-pane fade" id="tab-monthly" role="tabpanel">
+                <div class="row g-4 mb-4">
+                    <!-- กราฟคนไข้รายเดือนแยกตามสิทธิ -->
+                    <div class="col-lg-12">
+                        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-chart-column me-2"></i> จำนวนผู้รับบริการรายเดือน (แยกตามสิทธิการรักษา)</div>
+                                <span class="badge bg-primary-subtle text-primary">ภาพรวมรายเดือน</span>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="monthlyPttypeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- กราฟหัตถการรายเดือน -->
+                    <div class="col-lg-6">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-hands me-2 text-success"></i> สรุปกลุ่มหัตถการรายเดือน
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="monthlyOpsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- กราฟกลุ่มโรครายเดือน -->
+                    <div class="col-lg-6">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-stethoscope me-2 text-primary"></i> สรุปกลุ่มโรครายเดือน
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box">
+                                    <canvas id="monthlyDxChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- กราฟยาสมุนไพรรายเดือน -->
+                    <div class="col-lg-12">
+                        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
+                                <i class="fas fa-pills me-2" style="color: #059669;"></i> สรุปปริมาณการใช้ยาสมุนไพรรายเดือน (หน่วย)
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="chart-box" style="height: 360px;">
+                                    <canvas id="monthlyDrugsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -451,7 +655,6 @@
         // ==========================================
         // 1. การตั้งค่าระบบ (Configuration)
         // ==========================================
-        // Google Apps Script Web App Deployment URL
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbycspjIWwNOf42JKc6KyaPHy-o1xEc2EZTNLzOpyPLTP7JIjuqUvVwiN1zvJopMqu0O/exec";
         const SPREADSHEET_ID = "1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E";
         const SHEET_NAME = "DATA";
@@ -465,45 +668,63 @@
         let isFullscreen = false;
         let currentAuthToken = localStorage.getItem('thaimass_auth_token');
 
-        // Thai Month Names
-        const THAI_MONTHS = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        // Chart instances
+        let dailyPttypeChart = null;
+        let dailyOpsChart = null;
+        let dailyDxChart = null;
+        let dailyDrugsChart = null;
+        let monthlyPttypeChart = null;
+        let monthlyOpsChart = null;
+        let monthlyDxChart = null;
+        let monthlyDrugsChart = null;
 
-        function formatThaiDate(dateStr) {
-            if (!dateStr) return '-';
-            const parts = dateStr.split('-');
-            if (parts.length !== 3) return dateStr;
-            const d = parseInt(parts[2], 10);
-            const m = parseInt(parts[1], 10);
-            let y = parseInt(parts[0], 10);
-            if (y < 2500) y += 543;
-            return `${d} ${THAI_MONTHS[m] || ''} ${y}`;
+        // Colors palette
+        const COLORS = {
+            emerald: '#10b981',
+            blue: '#3b82f6',
+            amber: '#f59e0b',
+            rose: '#f43f5e',
+            purple: '#8b5cf6',
+            indigo: '#6366f1',
+            teal: '#14b8a6',
+            slate: '#64748b'
+        };
+
+        // Format Date to YYYY-MM-DD
+        function normalizeDateYMD(val) {
+            if (!val) return '';
+            const s = String(val).trim();
+            const parts = s.split('-');
+            if (parts.length === 3) {
+                let y = parseInt(parts[0], 10);
+                if (y > 2500) y -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                const m = parts[1].padStart(2, '0');
+                const d = parts[2].padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return s;
         }
 
-        function formatThaiDateRange(sDate, eDate) {
-            if (!sDate && !eDate) return 'ทั้งหมด';
-            if (sDate === eDate) return formatThaiDate(sDate);
-            return `${formatThaiDate(sDate)} ถึง ${formatThaiDate(eDate)}`;
-        }
-
-        // Pttype Categorization Logic
-        function categorizePttype(name) {
-            name = (name || '').trim();
-            if (name.includes('ต่างด้าว') || name.includes('ปัญหาสถานะ') || name.includes('Migrant')) {
-                return { name: 'ต่างด้าว / ปัญหาสิทธิ', badge: 'bg-purple-subtle text-purple text-dark border' };
-            }
-            if (name.includes('ชำระเงินเอง') || name.includes('เงินสด')) {
-                return { name: 'ชำระเงินเอง', badge: 'bg-success-subtle text-success border-success' };
-            }
-            if (name.includes('ประกันสังคม')) {
-                return { name: 'ประกันสังคม', badge: 'bg-danger-subtle text-danger border-danger' };
-            }
-            if (name.includes('จ่ายตรง') || name.includes('ข้าราชการ') || name.includes('เบิก') || name.includes('อปท') || name.includes('กบก')) {
-                return { name: 'ข้าราชการ / จ่ายตรง / อปท.', badge: 'bg-primary-subtle text-primary border-primary' };
-            }
-            if (name.includes('UC') || name.includes('บัตรทอง') || name.includes('ประกันสุขภาพ') || name.includes('30 บาท') || name.includes('ผู้สูงอายุ') || name.includes('พิการ')) {
-                return { name: 'บัตรทอง (UC)', badge: 'bg-warning-subtle text-dark border-warning' };
-            }
-            return { name: name || 'อื่นๆ', badge: 'bg-light text-dark border' };
+        // Clean Pttype Name (แสดงเฉพาะชื่อสิทธิ เช่น 40จ่ายตรง กบก)
+        function cleanPttypeName(name) {
+            if (!name) return 'ไม่ระบุสิทธิ';
+            let s = String(name).trim();
+            // ตัดคำอธิบายกลุ่มสิทธิ เช่น " (ข้าราชการ...)"
+            s = s.replace(/\s*\([^)]*\)/g, '');
+            // ตัดคำต่อท้ายเช่น "ข้าราชการ / จ่ายตรง / อปท."
+            const suffixes = [
+                'ข้าราชการ / จ่ายตรง / อปท.',
+                'ต่างด้าว / ปัญหาสิทธิ',
+                'บัตรทอง (UC)',
+                'ชำระเงินเอง',
+                'ประกันสังคม'
+            ];
+            suffixes.forEach(suf => {
+                if (s.endsWith(suf)) {
+                    s = s.substring(0, s.length - suf.length).trim();
+                }
+            });
+            return s.trim() || String(name).trim();
         }
 
         // JSONP Loader Helper for Google Apps Script Web App
@@ -597,7 +818,6 @@
                 }
             } catch (err) {
                 hideLoading();
-                // If offline or network error, fallback to login form
                 showLoginForm();
             }
         }
@@ -666,7 +886,13 @@
                 hideLoading();
 
                 if (res && res.status === 'success') {
-                    allSheetData = res.data || [];
+                    allSheetData = (res.data || []).map(row => {
+                        return {
+                            ...row,
+                            service_date: normalizeDateYMD(row.service_date),
+                            clean_pttype: cleanPttypeName(row.pttype_name)
+                        };
+                    });
                     initDatePickers();
                     filterAndRender();
                 } else {
@@ -687,7 +913,6 @@
         // Initialize default dates
         function initDatePickers() {
             if (allSheetData.length > 0) {
-                // หา service_date ล่าสุดที่มีในชีต
                 const dates = allSheetData.map(r => r.service_date).filter(Boolean).sort();
                 const latestDate = dates[dates.length - 1];
                 document.getElementById('startDateInput').value = latestDate || new Date().toISOString().split('T')[0];
@@ -707,18 +932,16 @@
 
             filteredData = allSheetData.filter(item => {
                 const itemDate = item.service_date || '';
-                // Date range check
                 if (startDate && itemDate < startDate) return false;
                 if (endDate && itemDate > endDate) return false;
 
-                // Search query check
                 if (searchQuery) {
                     const rowText = [
                         item.patient_name,
                         item.hn,
                         item.vn,
                         item.cid,
-                        item.pttype_name,
+                        item.clean_pttype,
                         item.dx,
                         item.cc,
                         item.operations,
@@ -739,6 +962,32 @@
 
             updateKPIs();
             renderTable();
+            renderDailyCharts();
+            renderMonthlyCharts();
+        }
+
+        // Parse Drug String (e.g. "ลูกประคบสมุนไพร (2), ขมิ้นชัน (50)")
+        function parseDrugString(drugsStr) {
+            const result = [];
+            if (!drugsStr || drugsStr === '-') return result;
+            const parts = drugsStr.split(',');
+            parts.forEach(p => {
+                const str = p.trim();
+                if (!str) return;
+                const match = str.match(/^(.*?)\s*\((\d+)\)$/);
+                if (match) {
+                    result.push({
+                        name: match[1].trim(),
+                        qty: parseInt(match[2], 10) || 1
+                    });
+                } else {
+                    result.push({
+                        name: str,
+                        qty: 1
+                    });
+                }
+            });
+            return result;
         }
 
         // Calculate KPIs & Groupings
@@ -754,6 +1003,7 @@
             const catStats = {};
             const opStats = {};
             const dxStats = {};
+            const drugStats = {};
 
             filteredData.forEach(row => {
                 if (row.hn) uniqueHns.add(row.hn);
@@ -763,13 +1013,13 @@
                 totalIncomeNoPt += parseFloat(row.inc_ttm_no_pt) || 0;
                 totalBill += parseFloat(row.total_price) || 0;
 
-                // Category Count
-                const cat = categorizePttype(row.pttype_name);
-                if (!catStats[cat.name]) {
-                    catStats[cat.name] = { count: 0, income: 0, badge: cat.badge };
+                // Clean Category Count
+                const catName = row.clean_pttype || 'ไม่ระบุสิทธิ';
+                if (!catStats[catName]) {
+                    catStats[catName] = { count: 0, income: 0 };
                 }
-                catStats[cat.name].count++;
-                catStats[cat.name].income += parseFloat(row.inc_ttm_no_pt) || 0;
+                catStats[catName].count++;
+                catStats[catName].income += parseFloat(row.inc_ttm_no_pt) || 0;
 
                 // Operations Count
                 if (row.operations && row.operations !== '-') {
@@ -795,6 +1045,14 @@
                         }
                     });
                 }
+
+                // Drug Count
+                const parsedDrugs = parseDrugString(row.ttm_drugs);
+                parsedDrugs.forEach(d => {
+                    if (!drugStats[d.name]) drugStats[d.name] = { count: 0, qty: 0 };
+                    drugStats[d.name].count++;
+                    drugStats[d.name].qty += d.qty;
+                });
             });
 
             // Set KPI Cards
@@ -843,19 +1101,37 @@
                 });
             }
 
-            // Render Diagnosis List (Top 10)
+            // Render Diagnosis List
             const dxList = document.getElementById('diagnosisList');
-            const dxKeys = Object.keys(dxStats).sort((a, b) => dxStats[b] - dxStats[a]).slice(0, 10);
+            const dxKeys = Object.keys(dxStats).sort((a, b) => dxStats[b] - dxStats[a]);
+            document.getElementById('dxTotalCount').textContent = dxKeys.length;
             dxList.innerHTML = '';
             if (dxKeys.length === 0) {
                 dxList.innerHTML = '<li class="list-group-item text-muted py-2">ไม่มีข้อมูลโรค</li>';
             } else {
-                dxKeys.forEach(dxName => {
+                dxKeys.slice(0, 10).forEach(dxName => {
                     const cnt = dxStats[dxName];
                     const li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-2';
                     li.innerHTML = `<span>${dxName}</span><span class="badge bg-primary-subtle text-primary rounded-pill">${cnt} ราย</span>`;
                     dxList.appendChild(li);
+                });
+            }
+
+            // Render Herbal Drugs Dashboard List
+            const drugsList = document.getElementById('drugsList');
+            const drugKeys = Object.keys(drugStats).sort((a, b) => drugStats[b].qty - drugStats[a].qty);
+            document.getElementById('drugsTotalCount').textContent = drugKeys.length;
+            drugsList.innerHTML = '';
+            if (drugKeys.length === 0) {
+                drugsList.innerHTML = '<li class="list-group-item text-muted py-2">ไม่มีข้อมูลยาแผนไทย</li>';
+            } else {
+                drugKeys.forEach(dName => {
+                    const item = drugStats[dName];
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-2';
+                    li.innerHTML = `<span><i class="fas fa-pills me-1 text-success"></i> ${dName}</span><span class="badge bg-emerald-subtle rounded-pill" style="background:#ecfdf5; color:#047857; font-weight:600;">${item.qty.toLocaleString()} หน่วย (${item.count} ครั้ง)</span>`;
+                    drugsList.appendChild(li);
                 });
             }
         }
@@ -884,13 +1160,13 @@
             tableBody.innerHTML = '';
 
             if (totalFiltered === 0) {
-                const startDate = document.getElementById('startDateInput').value;
-                const endDate = document.getElementById('endDateInput').value;
+                const startDate = document.getElementById('startDateInput').value || 'ทั้งหมด';
+                const endDate = document.getElementById('endDateInput').value || 'ทั้งหมด';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td colspan="17" class="text-center py-5 text-muted">
                         <i class="fas fa-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                        ไม่พบข้อมูลการให้บริการแพทย์แผนไทยในช่วงวันที่ ${formatThaiDateRange(startDate, endDate)}
+                        ไม่พบข้อมูลการให้บริการแพทย์แผนไทยในช่วงวันที่ ${startDate} ถึง ${endDate}
                     </td>
                 `;
                 tableBody.appendChild(tr);
@@ -914,20 +1190,16 @@
                     }).join('');
                 }
 
-                // Rights Badge
-                const cat = categorizePttype(row.pttype_name);
-
                 tr.innerHTML = `
                     <td class="text-center text-muted fw-semibold col-no">${i + 1}</td>
-                    <td class="text-center small text-secondary font-monospace">${row.service_date ? row.service_date.substring(5) : '-'}</td>
+                    <td class="text-center small font-monospace text-secondary">${row.service_date || '-'}</td>
                     <td class="text-center fw-semibold text-primary">${row.service_time ? row.service_time.substring(0, 5) : '-'} น.</td>
                     <td class="fw-bold">${row.patient_name || 'ไม่ระบุชื่อ'}</td>
                     <td class="text-center font-monospace small text-secondary">${row.cid || '-'}</td>
                     <td class="text-center font-monospace text-success fw-bold">${row.hn || '-'}</td>
                     <td class="text-center font-monospace small text-muted">${row.vn || '-'}</td>
                     <td>
-                        <div class="small fw-semibold text-dark">${row.pttype_name || '-'}</div>
-                        <span class="badge badge-cat ${cat.badge}">${cat.name}</span>
+                        <div class="small fw-semibold text-dark">${row.clean_pttype || '-'}</div>
                     </td>
                     <td><div class="small text-danger fw-semibold">${row.dx || '-'}</div></td>
                     <td><div class="small text-secondary">${row.cc || '-'}</div></td>
@@ -1012,7 +1284,305 @@
         }
 
         // ==========================================
-        // 5. Event Listeners & UI Controls
+        // 5. Daily & Monthly Charts (Chart.js)
+        // ==========================================
+        function renderDailyCharts() {
+            const sDate = document.getElementById('startDateInput').value;
+            const eDate = document.getElementById('endDateInput').value;
+            document.getElementById('dailyDateRangeLabel').textContent = `${sDate || 'เริ่มต้น'} ถึง ${eDate || 'สิ้นสุด'}`;
+
+            // Aggregate Data by Date
+            const dailyData = {};
+            const allPttypes = new Set();
+            const opsCount = {};
+            const dxCount = {};
+            const drugQty = {};
+
+            filteredData.forEach(r => {
+                const d = r.service_date || 'ไม่ระบุวันที่';
+                if (!dailyData[d]) dailyData[d] = {};
+                const pt = r.clean_pttype || 'ไม่ระบุสิทธิ';
+                allPttypes.add(pt);
+                dailyData[d][pt] = (dailyData[d][pt] || 0) + 1;
+
+                // Ops
+                if (r.operations && r.operations !== '-') {
+                    r.operations.split(',').forEach(op => {
+                        const name = op.trim();
+                        if (name) opsCount[name] = (opsCount[name] || 0) + 1;
+                    });
+                }
+                // Dx
+                if (r.dx && r.dx !== '-' && r.dx !== 'ยังไม่ลงรหัส') {
+                    r.dx.split(',').forEach(dx => {
+                        const name = dx.trim();
+                        if (name) dxCount[name] = (dxCount[name] || 0) + 1;
+                    });
+                }
+                // Drugs
+                parseDrugString(r.ttm_drugs).forEach(dg => {
+                    drugQty[dg.name] = (drugQty[dg.name] || 0) + dg.qty;
+                });
+            });
+
+            const sortedDates = Object.keys(dailyData).sort();
+            const pttypeList = Array.from(allPttypes);
+            const colorKeys = Object.values(COLORS);
+
+            // 1. Daily Pttype Stacked Bar Chart
+            const datasets = pttypeList.map((pt, idx) => {
+                return {
+                    label: pt,
+                    data: sortedDates.map(d => dailyData[d][pt] || 0),
+                    backgroundColor: colorKeys[idx % colorKeys.length],
+                    borderRadius: 4
+                };
+            });
+
+            if (dailyPttypeChart) dailyPttypeChart.destroy();
+            const ctx1 = document.getElementById('dailyPttypeChart');
+            if (ctx1) {
+                dailyPttypeChart = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedDates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, title: { display: true, text: 'จำนวนผู้รับบริการ (ราย)' } }
+                        },
+                        plugins: {
+                            tooltip: { mode: 'index', intersect: false }
+                        }
+                    }
+                });
+            }
+
+            // 2. Daily Operations Chart (Top 8)
+            const topOps = Object.keys(opsCount).sort((a, b) => opsCount[b] - opsCount[a]).slice(0, 8);
+            if (dailyOpsChart) dailyOpsChart.destroy();
+            const ctx2 = document.getElementById('dailyOpsChart');
+            if (ctx2) {
+                dailyOpsChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: topOps,
+                        datasets: [{
+                            label: 'จำนวนครั้ง',
+                            data: topOps.map(k => opsCount[k]),
+                            backgroundColor: '#10b981',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // 3. Daily Dx Chart (Top 8)
+            const topDx = Object.keys(dxCount).sort((a, b) => dxCount[b] - dxCount[a]).slice(0, 8);
+            if (dailyDxChart) dailyDxChart.destroy();
+            const ctx3 = document.getElementById('dailyDxChart');
+            if (ctx3) {
+                dailyDxChart = new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: topDx,
+                        datasets: [{
+                            label: 'จำนวนคนไข้',
+                            data: topDx.map(k => dxCount[k]),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // 4. Daily Drugs Chart (Top 10)
+            const topDrugs = Object.keys(drugQty).sort((a, b) => drugQty[b] - drugQty[a]).slice(0, 10);
+            if (dailyDrugsChart) dailyDrugsChart.destroy();
+            const ctx4 = document.getElementById('dailyDrugsChart');
+            if (ctx4) {
+                dailyDrugsChart = new Chart(ctx4, {
+                    type: 'bar',
+                    data: {
+                        labels: topDrugs,
+                        datasets: [{
+                            label: 'จำนวนหน่วยที่จ่าย',
+                            data: topDrugs.map(k => drugQty[k]),
+                            backgroundColor: '#059669',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนหน่วย' } } }
+                    }
+                });
+            }
+        }
+
+        function renderMonthlyCharts() {
+            // Aggregate all data by Month (YYYY-MM)
+            const monthlyData = {};
+            const allPttypes = new Set();
+            const opsMonthly = {};
+            const dxMonthly = {};
+            const drugMonthly = {};
+
+            allSheetData.forEach(r => {
+                const ym = (r.service_date || '').substring(0, 7) || 'ไม่ระบุเดือน';
+                if (!monthlyData[ym]) monthlyData[ym] = {};
+                const pt = r.clean_pttype || 'ไม่ระบุสิทธิ';
+                allPttypes.add(pt);
+                monthlyData[ym][pt] = (monthlyData[ym][pt] || 0) + 1;
+
+                if (r.operations && r.operations !== '-') {
+                    r.operations.split(',').forEach(op => {
+                        const name = op.trim();
+                        if (name) opsMonthly[name] = (opsMonthly[name] || 0) + 1;
+                    });
+                }
+                if (r.dx && r.dx !== '-' && r.dx !== 'ยังไม่ลงรหัส') {
+                    r.dx.split(',').forEach(dx => {
+                        const name = dx.trim();
+                        if (name) dxMonthly[name] = (dxMonthly[name] || 0) + 1;
+                    });
+                }
+                parseDrugString(r.ttm_drugs).forEach(dg => {
+                    drugMonthly[dg.name] = (drugMonthly[dg.name] || 0) + dg.qty;
+                });
+            });
+
+            const sortedMonths = Object.keys(monthlyData).sort();
+            const pttypeList = Array.from(allPttypes);
+            const colorKeys = Object.values(COLORS);
+
+            // 1. Monthly Pttype Chart
+            const datasets = pttypeList.map((pt, idx) => {
+                return {
+                    label: pt,
+                    data: sortedMonths.map(m => monthlyData[m][pt] || 0),
+                    backgroundColor: colorKeys[idx % colorKeys.length],
+                    borderRadius: 4
+                };
+            });
+
+            if (monthlyPttypeChart) monthlyPttypeChart.destroy();
+            const ctx1 = document.getElementById('monthlyPttypeChart');
+            if (ctx1) {
+                monthlyPttypeChart = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedMonths,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, title: { display: true, text: 'จำนวนผู้รับบริการ (ราย)' } }
+                        },
+                        plugins: {
+                            tooltip: { mode: 'index', intersect: false }
+                        }
+                    }
+                });
+            }
+
+            // 2. Monthly Operations Chart (Top 8)
+            const topOps = Object.keys(opsMonthly).sort((a, b) => opsMonthly[b] - opsMonthly[a]).slice(0, 8);
+            if (monthlyOpsChart) monthlyOpsChart.destroy();
+            const ctx2 = document.getElementById('monthlyOpsChart');
+            if (ctx2) {
+                monthlyOpsChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: topOps,
+                        datasets: [{
+                            label: 'จำนวนครั้งสะสม',
+                            data: topOps.map(k => opsMonthly[k]),
+                            backgroundColor: '#059669',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // 3. Monthly Dx Chart (Top 8)
+            const topDx = Object.keys(dxMonthly).sort((a, b) => dxMonthly[b] - dxMonthly[a]).slice(0, 8);
+            if (monthlyDxChart) monthlyDxChart.destroy();
+            const ctx3 = document.getElementById('monthlyDxChart');
+            if (ctx3) {
+                monthlyDxChart = new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: topDx,
+                        datasets: [{
+                            label: 'จำนวนคนไข้สะสม',
+                            data: topDx.map(k => dxMonthly[k]),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // 4. Monthly Drugs Chart (Top 10)
+            const topDrugs = Object.keys(drugMonthly).sort((a, b) => drugMonthly[b] - drugMonthly[a]).slice(0, 10);
+            if (monthlyDrugsChart) monthlyDrugsChart.destroy();
+            const ctx4 = document.getElementById('monthlyDrugsChart');
+            if (ctx4) {
+                monthlyDrugsChart = new Chart(ctx4, {
+                    type: 'bar',
+                    data: {
+                        labels: topDrugs,
+                        datasets: [{
+                            label: 'จำนวนหน่วยสะสมที่จ่าย',
+                            data: topDrugs.map(k => drugMonthly[k]),
+                            backgroundColor: '#047857',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนหน่วย' } } }
+                    }
+                });
+            }
+        }
+
+        // ==========================================
+        // 6. Event Listeners & UI Controls
         // ==========================================
         document.getElementById('pageSizeSelect').addEventListener('change', function() {
             pageSize = (this.value === 'all') ? 'all' : parseInt(this.value, 10);
@@ -1047,6 +1617,24 @@
 
         document.getElementById('refreshBtn').addEventListener('click', function() {
             loadDataFromSheet();
+        });
+
+        // Tab Change Trigger for Chart Resize
+        const tabElList = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabElList.forEach(tabEl => {
+            tabEl.addEventListener('shown.bs.tab', event => {
+                if (event.target.id === 'tab-daily-btn') {
+                    if (dailyPttypeChart) dailyPttypeChart.resize();
+                    if (dailyOpsChart) dailyOpsChart.resize();
+                    if (dailyDxChart) dailyDxChart.resize();
+                    if (dailyDrugsChart) dailyDrugsChart.resize();
+                } else if (event.target.id === 'tab-monthly-btn') {
+                    if (monthlyPttypeChart) monthlyPttypeChart.resize();
+                    if (monthlyOpsChart) monthlyOpsChart.resize();
+                    if (monthlyDxChart) monthlyDxChart.resize();
+                    if (monthlyDrugsChart) monthlyDrugsChart.resize();
+                }
+            });
         });
 
         // Compact Density Mode
@@ -1110,9 +1698,21 @@
             });
         });
 
-        // Start verify
+        // Bootstrap tab JS initialization
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            tabElList.forEach(triggerEl => {
+                triggerEl.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const tab = new bootstrap.Tab(this);
+                    tab.show();
+                });
+            });
+        }
+
+        // Start session check
         verifySession();
     })();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
