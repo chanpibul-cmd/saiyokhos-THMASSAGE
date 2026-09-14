@@ -864,12 +864,13 @@
                 queryParams.set('callback', callbackName);
                 
                 const script = document.createElement('script');
-                script.src = `${GAS_API_URL}?${queryParams.toString()}`;
+                const fullUrl = `${GAS_API_URL}?${queryParams.toString()}`;
+                script.src = fullUrl;
                 
                 const timeoutId = setTimeout(() => {
                     cleanup();
-                    reject(new Error('การเชื่อมต่อ Google Apps Script หมดเวลา (Timeout)'));
-                }, 25000);
+                    reject(new Error('การเชื่อมต่อ Google Apps Script หมดเวลา (Timeout - 30s)'));
+                }, 30000);
 
                 function cleanup() {
                     clearTimeout(timeoutId);
@@ -882,9 +883,10 @@
                     resolve(data);
                 };
 
-                script.onerror = function() {
+                script.onerror = function(e) {
                     cleanup();
-                    reject(new Error('ไม่สามารถเชื่อมต่อ Google Apps Script ได้'));
+                    console.error("Script load error for URL:", fullUrl, e);
+                    reject(new Error('ไม่สามารถโหลดสคริปต์จาก Google Apps Script ได้ (อาจติดปัญหา Network หรือ URL ถูกบล็อก)'));
                 };
 
                 document.body.appendChild(script);
@@ -982,12 +984,13 @@
                     showMainApp();
                     loadDataFromSheet();
                 } else {
-                    loginAlert.textContent = res.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                    loginAlert.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i> ${res.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'}`;
                     loginAlert.classList.remove('d-none');
                 }
             } catch (err) {
                 hideLoading();
-                loginAlert.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง';
+                console.error("Login catch error:", err);
+                loginAlert.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i> ${err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์'}`;
                 loginAlert.classList.remove('d-none');
             }
         });
@@ -1563,6 +1566,8 @@
                         scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนหน่วย' } } }
                     }
                 });
+            }
+
             // 5. Render Daily Data Tables
             renderDailyTables(sortedDates, pttypeList, dailyData, opsCount, dxCount, drugQty);
         }
