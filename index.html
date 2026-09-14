@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body { 
             background-color: #f0fdf4; 
@@ -516,48 +517,96 @@
                 </div>
             </div>
 
-            <!-- TAB 2: Dashboard รายวัน (Daily Charts) -->
+            <!-- TAB 2: Dashboard รายวัน (Daily Charts & Tables) -->
             <div class="tab-pane fade" id="tab-daily" role="tabpanel">
                 <div class="row g-4 mb-4">
-                    <!-- กราฟคนไข้รายวันแยกตามสิทธิ -->
+                    <!-- กราฟและตารางคนไข้รายวันแยกตามสิทธิ -->
                     <div class="col-lg-12">
                         <div class="card border-0 shadow-sm" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex justify-content-between align-items-center">
-                                <div><i class="fas fa-chart-bar me-2"></i> จำนวนผู้รับบริการรายวัน (แยกตามสิทธิการรักษา)</div>
-                                <span class="badge bg-success-subtle text-success" id="dailyDateRangeLabel">-</span>
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-chart-bar me-1"></i> 
+                                    <span>จำนวนผู้รับบริการรายวัน (แยกตามสิทธิการรักษา)</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-success-subtle text-success" id="dailyDateRangeLabel">-</span>
+                                    <button type="button" class="btn btn-success btn-sm px-3 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableDailyPttype', 'รายงานรายวัน_แยกตามสิทธิ')">
+                                        <i class="fas fa-file-excel me-1"></i> Export Excel
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="dailyPttypeChart"></canvas>
                                 </div>
+                                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableDailyPttype">
+                                        <thead class="table-light" id="tableDailyPttypeHead">
+                                        </thead>
+                                        <tbody id="tableDailyPttypeBody">
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="row g-4 mb-4">
-                    <!-- กราฟกลุ่มหัตถการยอดนิยมรายวัน -->
+                    <!-- กราฟและตารางกลุ่มหัตถการยอดนิยมรายวัน -->
                     <div class="col-lg-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-hands me-2 text-success"></i> กลุ่มหัตถการ (จำนวนครั้งที่ทำ)
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-hands me-2 text-success"></i> กลุ่มหัตถการ (จำนวนครั้งที่ทำ)</div>
+                                <button type="button" class="btn btn-outline-success btn-sm px-2 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableDailyOps', 'รายงานรายวัน_กลุ่มหัตถการ')">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="dailyOpsChart"></canvas>
                                 </div>
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableDailyOps">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>ชื่อหัตถการ</th>
+                                                <th class="text-end" style="width: 110px;">จำนวน (ครั้ง)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableDailyOpsBody">
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- กราฟกลุ่มโรคที่พบบ่อยรายวัน -->
+                    <!-- กราฟและตารางกลุ่มโรคที่พบบ่อยรายวัน -->
                     <div class="col-lg-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-stethoscope me-2 text-primary"></i> กลุ่มโรคที่พบบ่อย (ICD-10)
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-stethoscope me-2 text-primary"></i> กลุ่มโรคที่พบบ่อย (ICD-10)</div>
+                                <button type="button" class="btn btn-outline-success btn-sm px-2 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableDailyDx', 'รายงานรายวัน_กลุ่มโรค')">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="dailyDxChart"></canvas>
+                                </div>
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableDailyDx">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>รหัส / ชื่อโรค (ICD-10)</th>
+                                                <th class="text-end" style="width: 110px;">จำนวน (ราย)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableDailyDxBody">
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -565,15 +614,31 @@
                 </div>
 
                 <div class="row g-4 mb-4">
-                    <!-- กราฟยาสมุนไพรรายวัน -->
+                    <!-- กราฟและตารางยาสมุนไพรรายวัน -->
                     <div class="col-lg-12">
                         <div class="card border-0 shadow-sm" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-pills me-2 text-emerald" style="color: #059669;"></i> ปริมาณการใช้ยาสมุนไพร / ยาแผนไทย (จำนวนหน่วยที่จ่าย)
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-pills me-2 text-emerald" style="color: #059669;"></i> ปริมาณการใช้ยาสมุนไพร / ยาแผนไทย (จำนวนหน่วยที่จ่าย)</div>
+                                <button type="button" class="btn btn-success btn-sm px-3 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableDailyDrugs', 'รายงานรายวัน_ยาสมุนไพร')">
+                                    <i class="fas fa-file-excel me-1"></i> Export Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box" style="height: 360px;">
+                                <div class="chart-box mb-4" style="height: 340px;">
                                     <canvas id="dailyDrugsChart"></canvas>
+                                </div>
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableDailyDrugs">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>ชื่อยาสมุนไพร / ยาแผนไทย</th>
+                                                <th class="text-end" style="width: 140px;">จำนวนที่จ่าย (หน่วย)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableDailyDrugsBody">
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -581,48 +646,96 @@
                 </div>
             </div>
 
-            <!-- TAB 3: Dashboard รายเดือน (Monthly Charts) -->
+            <!-- TAB 3: Dashboard รายเดือน (Monthly Charts & Tables) -->
             <div class="tab-pane fade" id="tab-monthly" role="tabpanel">
                 <div class="row g-4 mb-4">
-                    <!-- กราฟคนไข้รายเดือนแยกตามสิทธิ -->
+                    <!-- กราฟและตารางคนไข้รายเดือนแยกตามสิทธิ -->
                     <div class="col-lg-12">
                         <div class="card border-0 shadow-sm" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex justify-content-between align-items-center">
-                                <div><i class="fas fa-chart-column me-2"></i> จำนวนผู้รับบริการรายเดือน (แยกตามสิทธิการรักษา)</div>
-                                <span class="badge bg-primary-subtle text-primary">ภาพรวมรายเดือน</span>
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-success d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-chart-column me-1"></i> 
+                                    <span>จำนวนผู้รับบริการรายเดือน (แยกตามสิทธิการรักษา)</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary-subtle text-primary">ภาพรวมรายเดือน</span>
+                                    <button type="button" class="btn btn-success btn-sm px-3 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableMonthlyPttype', 'รายงานรายเดือน_แยกตามสิทธิ')">
+                                        <i class="fas fa-file-excel me-1"></i> Export Excel
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="monthlyPttypeChart"></canvas>
                                 </div>
+                                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableMonthlyPttype">
+                                        <thead class="table-light" id="tableMonthlyPttypeHead">
+                                        </thead>
+                                        <tbody id="tableMonthlyPttypeBody">
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="row g-4 mb-4">
-                    <!-- กราฟหัตถการรายเดือน -->
+                    <!-- กราฟและตารางหัตถการรายเดือน -->
                     <div class="col-lg-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-hands me-2 text-success"></i> สรุปกลุ่มหัตถการรายเดือน
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-hands me-2 text-success"></i> สรุปกลุ่มหัตถการรายเดือน</div>
+                                <button type="button" class="btn btn-outline-success btn-sm px-2 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableMonthlyOps', 'รายงานรายเดือน_กลุ่มหัตถการ')">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="monthlyOpsChart"></canvas>
                                 </div>
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableMonthlyOps">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>ชื่อหัตถการ</th>
+                                                <th class="text-end" style="width: 130px;">จำนวนสะสม (ครั้ง)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableMonthlyOpsBody">
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- กราฟกลุ่มโรครายเดือน -->
+                    <!-- กราฟและตารางกลุ่มโรครายเดือน -->
                     <div class="col-lg-6">
                         <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-stethoscope me-2 text-primary"></i> สรุปกลุ่มโรครายเดือน
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-stethoscope me-2 text-primary"></i> สรุปกลุ่มโรครายเดือน</div>
+                                <button type="button" class="btn btn-outline-success btn-sm px-2 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableMonthlyDx', 'รายงานรายเดือน_กลุ่มโรค')">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box">
+                                <div class="chart-box mb-4">
                                     <canvas id="monthlyDxChart"></canvas>
+                                </div>
+                                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableMonthlyDx">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>รหัส / ชื่อโรค (ICD-10)</th>
+                                                <th class="text-end" style="width: 130px;">จำนวนสะสม (ราย)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableMonthlyDxBody">
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -630,15 +743,31 @@
                 </div>
 
                 <div class="row g-4 mb-4">
-                    <!-- กราฟยาสมุนไพรรายเดือน -->
+                    <!-- กราฟและตารางยาสมุนไพรรายเดือน -->
                     <div class="col-lg-12">
                         <div class="card border-0 shadow-sm" style="border-radius: 14px;">
-                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark">
-                                <i class="fas fa-pills me-2" style="color: #059669;"></i> สรุปปริมาณการใช้ยาสมุนไพรรายเดือน (หน่วย)
+                            <div class="card-header bg-white py-3 px-4 fw-bold text-dark d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-pills me-2" style="color: #059669;"></i> สรุปปริมาณการใช้ยาสมุนไพรรายเดือน (หน่วย)</div>
+                                <button type="button" class="btn btn-success btn-sm px-3 shadow-none fw-semibold" onclick="window.exportDashboardTableToExcel('tableMonthlyDrugs', 'รายงานรายเดือน_ยาสมุนไพร')">
+                                    <i class="fas fa-file-excel me-1"></i> Export Excel
+                                </button>
                             </div>
                             <div class="card-body p-4">
-                                <div class="chart-box" style="height: 360px;">
+                                <div class="chart-box mb-4" style="height: 340px;">
                                     <canvas id="monthlyDrugsChart"></canvas>
+                                </div>
+                                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="tableMonthlyDrugs">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width: 60px;">ลำดับ</th>
+                                                <th>ชื่อยาสมุนไพร / ยาแผนไทย</th>
+                                                <th class="text-end" style="width: 160px;">จำนวนสะสมที่จ่าย (หน่วย)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableMonthlyDrugsBody">
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -1434,6 +1563,128 @@
                         scales: { y: { beginAtZero: true, title: { display: true, text: 'จำนวนหน่วย' } } }
                     }
                 });
+            // 5. Render Daily Data Tables
+            renderDailyTables(sortedDates, pttypeList, dailyData, opsCount, dxCount, drugQty);
+        }
+
+        function renderDailyTables(dates, pttypes, dailyData, opsCount, dxCount, drugQty) {
+            // 5.1 Daily Pttype Table
+            const thHead = document.getElementById('tableDailyPttypeHead');
+            const tbBody = document.getElementById('tableDailyPttypeBody');
+            if (thHead && tbBody) {
+                let headHtml = `<tr><th class="text-center" style="width: 120px;">วันที่ (Date)</th>`;
+                pttypes.forEach(pt => {
+                    headHtml += `<th class="text-end">${escapeHtml(pt)}</th>`;
+                });
+                headHtml += `<th class="text-end bg-success-subtle fw-bold" style="width: 120px;">รวม (ราย)</th></tr>`;
+                thHead.innerHTML = headHtml;
+
+                let bodyHtml = '';
+                let colTotals = {};
+                pttypes.forEach(pt => { colTotals[pt] = 0; });
+                let grandTotal = 0;
+
+                dates.forEach(d => {
+                    let rowSum = 0;
+                    bodyHtml += `<tr><td class="text-center fw-semibold text-secondary"><i class="far fa-calendar-alt me-1 text-muted"></i>${d}</td>`;
+                    pttypes.forEach(pt => {
+                        const cnt = dailyData[d][pt] || 0;
+                        colTotals[pt] += cnt;
+                        rowSum += cnt;
+                        bodyHtml += `<td class="text-end">${cnt > 0 ? cnt.toLocaleString() : '-'}</td>`;
+                    });
+                    grandTotal += rowSum;
+                    bodyHtml += `<td class="text-end fw-bold text-success bg-light">${rowSum.toLocaleString()}</td></tr>`;
+                });
+
+                if (dates.length === 0) {
+                    bodyHtml = `<tr><td colspan="${pttypes.length + 2}" class="text-center text-muted py-3">ไม่มีข้อมูลในช่วงวันที่ที่เลือก</td></tr>`;
+                } else {
+                    bodyHtml += `<tr class="table-secondary fw-bold"><td class="text-center">รวมทั้งหมด</td>`;
+                    pttypes.forEach(pt => {
+                        bodyHtml += `<td class="text-end">${colTotals[pt].toLocaleString()}</td>`;
+                    });
+                    bodyHtml += `<td class="text-end text-success">${grandTotal.toLocaleString()}</td></tr>`;
+                }
+                tbBody.innerHTML = bodyHtml;
+            }
+
+            // 5.2 Daily Ops Table
+            const tbOps = document.getElementById('tableDailyOpsBody');
+            if (tbOps) {
+                const sortedOps = Object.keys(opsCount).sort((a, b) => opsCount[b] - opsCount[a]);
+                let html = '';
+                let sumOps = 0;
+                sortedOps.forEach((op, idx) => {
+                    const cnt = opsCount[op];
+                    sumOps += cnt;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(op)}</td>
+                        <td class="text-end fw-bold text-success">${cnt.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedOps.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลหัตถการ</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมหัตถการทั้งหมด</td>
+                        <td class="text-end text-success">${sumOps.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbOps.innerHTML = html;
+            }
+
+            // 5.3 Daily Dx Table
+            const tbDx = document.getElementById('tableDailyDxBody');
+            if (tbDx) {
+                const sortedDx = Object.keys(dxCount).sort((a, b) => dxCount[b] - dxCount[a]);
+                let html = '';
+                let sumDx = 0;
+                sortedDx.forEach((dx, idx) => {
+                    const cnt = dxCount[dx];
+                    sumDx += cnt;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(dx)}</td>
+                        <td class="text-end fw-bold text-primary">${cnt.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedDx.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลกลุ่มโรค</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมคนไข้ทั้งหมด</td>
+                        <td class="text-end text-primary">${sumDx.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbDx.innerHTML = html;
+            }
+
+            // 5.4 Daily Drugs Table
+            const tbDrugs = document.getElementById('tableDailyDrugsBody');
+            if (tbDrugs) {
+                const sortedDrugs = Object.keys(drugQty).sort((a, b) => drugQty[b] - drugQty[a]);
+                let html = '';
+                let sumDrugs = 0;
+                sortedDrugs.forEach((dg, idx) => {
+                    const qty = drugQty[dg];
+                    sumDrugs += qty;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(dg)}</td>
+                        <td class="text-end fw-bold text-success">${qty.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedDrugs.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลการใช้ยาสมุนไพร</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมจำนวนหน่วยที่จ่ายทั้งหมด</td>
+                        <td class="text-end text-success">${sumDrugs.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbDrugs.innerHTML = html;
             }
         }
 
@@ -1579,6 +1830,180 @@
                     }
                 });
             }
+
+            // 5. Render Monthly Data Tables
+            renderMonthlyTables(sortedMonths, pttypeList, monthlyData, opsMonthly, dxMonthly, drugMonthly);
+        }
+
+        function renderMonthlyTables(months, pttypes, monthlyData, opsMonthly, dxMonthly, drugMonthly) {
+            // 5.1 Monthly Pttype Table
+            const thHead = document.getElementById('tableMonthlyPttypeHead');
+            const tbBody = document.getElementById('tableMonthlyPttypeBody');
+            if (thHead && tbBody) {
+                let headHtml = `<tr><th class="text-center" style="width: 120px;">เดือน (Month)</th>`;
+                pttypes.forEach(pt => {
+                    headHtml += `<th class="text-end">${escapeHtml(pt)}</th>`;
+                });
+                headHtml += `<th class="text-end bg-primary-subtle fw-bold" style="width: 120px;">รวม (ราย)</th></tr>`;
+                thHead.innerHTML = headHtml;
+
+                let bodyHtml = '';
+                let colTotals = {};
+                pttypes.forEach(pt => { colTotals[pt] = 0; });
+                let grandTotal = 0;
+
+                months.forEach(m => {
+                    let rowSum = 0;
+                    bodyHtml += `<tr><td class="text-center fw-semibold text-secondary"><i class="fas fa-calendar me-1 text-primary"></i>${m}</td>`;
+                    pttypes.forEach(pt => {
+                        const cnt = monthlyData[m][pt] || 0;
+                        colTotals[pt] += cnt;
+                        rowSum += cnt;
+                        bodyHtml += `<td class="text-end">${cnt > 0 ? cnt.toLocaleString() : '-'}</td>`;
+                    });
+                    grandTotal += rowSum;
+                    bodyHtml += `<td class="text-end fw-bold text-primary bg-light">${rowSum.toLocaleString()}</td></tr>`;
+                });
+
+                if (months.length === 0) {
+                    bodyHtml = `<tr><td colspan="${pttypes.length + 2}" class="text-center text-muted py-3">ไม่มีข้อมูลรายเดือน</td></tr>`;
+                } else {
+                    bodyHtml += `<tr class="table-secondary fw-bold"><td class="text-center">รวมสะสมทั้งหมด</td>`;
+                    pttypes.forEach(pt => {
+                        bodyHtml += `<td class="text-end">${colTotals[pt].toLocaleString()}</td>`;
+                    });
+                    bodyHtml += `<td class="text-end text-primary">${grandTotal.toLocaleString()}</td></tr>`;
+                }
+                tbBody.innerHTML = bodyHtml;
+            }
+
+            // 5.2 Monthly Ops Table
+            const tbOps = document.getElementById('tableMonthlyOpsBody');
+            if (tbOps) {
+                const sortedOps = Object.keys(opsMonthly).sort((a, b) => opsMonthly[b] - opsMonthly[a]);
+                let html = '';
+                let sumOps = 0;
+                sortedOps.forEach((op, idx) => {
+                    const cnt = opsMonthly[op];
+                    sumOps += cnt;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(op)}</td>
+                        <td class="text-end fw-bold text-success">${cnt.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedOps.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลหัตถการ</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมหัตถการสะสมทั้งหมด</td>
+                        <td class="text-end text-success">${sumOps.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbOps.innerHTML = html;
+            }
+
+            // 5.3 Monthly Dx Table
+            const tbDx = document.getElementById('tableMonthlyDxBody');
+            if (tbDx) {
+                const sortedDx = Object.keys(dxMonthly).sort((a, b) => dxMonthly[b] - dxMonthly[a]);
+                let html = '';
+                let sumDx = 0;
+                sortedDx.forEach((dx, idx) => {
+                    const cnt = dxMonthly[dx];
+                    sumDx += cnt;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(dx)}</td>
+                        <td class="text-end fw-bold text-primary">${cnt.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedDx.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลกลุ่มโรค</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมคนไข้สะสมทั้งหมด</td>
+                        <td class="text-end text-primary">${sumDx.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbDx.innerHTML = html;
+            }
+
+            // 5.4 Monthly Drugs Table
+            const tbDrugs = document.getElementById('tableMonthlyDrugsBody');
+            if (tbDrugs) {
+                const sortedDrugs = Object.keys(drugMonthly).sort((a, b) => drugMonthly[b] - drugMonthly[a]);
+                let html = '';
+                let sumDrugs = 0;
+                sortedDrugs.forEach((dg, idx) => {
+                    const qty = drugMonthly[dg];
+                    sumDrugs += qty;
+                    html += `<tr>
+                        <td class="text-center text-muted">${idx + 1}</td>
+                        <td class="fw-semibold text-dark">${escapeHtml(dg)}</td>
+                        <td class="text-end fw-bold text-success">${qty.toLocaleString()}</td>
+                    </tr>`;
+                });
+                if (sortedDrugs.length === 0) {
+                    html = `<tr><td colspan="3" class="text-center text-muted py-3">ไม่มีข้อมูลยาสมุนไพร</td></tr>`;
+                } else {
+                    html += `<tr class="table-light fw-bold">
+                        <td colspan="2" class="text-center">รวมจำนวนหน่วยสะสมที่จ่ายทั้งหมด</td>
+                        <td class="text-end text-success">${sumDrugs.toLocaleString()}</td>
+                    </tr>`;
+                }
+                tbDrugs.innerHTML = html;
+            }
+        }
+
+        // ==========================================
+        // Export Table to Excel (.xlsx) using SheetJS
+        // ==========================================
+        window.exportDashboardTableToExcel = function(tableId, defaultFilename) {
+            const table = document.getElementById(tableId);
+            if (!table) {
+                alert("ไม่พบตารางข้อมูลสำหรับการ Export");
+                return;
+            }
+            try {
+                if (typeof XLSX === 'undefined') {
+                    // Fallback to CSV if SheetJS failed to load
+                    exportTableToCSV(table, defaultFilename);
+                    return;
+                }
+                const wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+                const dateStr = new Date().toISOString().split('T')[0];
+                const filename = `${defaultFilename}_${dateStr}.xlsx`;
+                XLSX.writeFile(wb, filename);
+            } catch (err) {
+                console.error("Export to Excel Error:", err);
+                // Fallback to CSV
+                exportTableToCSV(table, defaultFilename);
+            }
+        };
+
+        // Fallback CSV Exporter
+        function exportTableToCSV(table, filename) {
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            for (let i = 0; i < rows.length; i++) {
+                let row = [], cols = rows[i].querySelectorAll('td, th');
+                for (let j = 0; j < cols.length; j++) {
+                    let data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').trim();
+                    data = data.replace(/"/g, '""');
+                    row.push('"' + data + '"');
+                }
+                csv.push(row.join(','));
+            }
+            const csvContent = "\uFEFF" + csv.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const dateStr = new Date().toISOString().split('T')[0];
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", `${filename}_${dateStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // ==========================================
