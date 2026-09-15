@@ -784,7 +784,7 @@
         // ==========================================
         // 1. การตั้งค่าระบบ (Configuration)
         // ==========================================
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbycspjIWwNOf42JKc6KyaPHy-o1xEc2EZTNLzOpyPLTP7JIjuqUvVwiN1zvJopMqu0O/exec";
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw8XFE0a18jz_1Kt9E6XfWA3aO-F5xFNF7LTNOnVqV7BtkM78K6mp-xua-oOvI8n7qB/exec";
         const SPREADSHEET_ID = "1FqYAYCFS9IwaaOF-ISp_xs62vS0VeoMljsGvy1luJ7E";
         const SHEET_NAME = "DATA";
 
@@ -880,8 +880,8 @@
                 
                 const timeoutId = setTimeout(() => {
                     cleanup();
-                    reject(new Error('การเชื่อมต่อ Google Apps Script หมดเวลา (Timeout - 30s)'));
-                }, 30000);
+                    reject(new Error('การเชื่อมต่อ Google Apps Script หมดเวลา (Timeout - 60s) กรุณาอัปเดตไฟล์ Code.gs ใน Google Sheet เป็นเวอร์ชันใหม่ หรือลองกดโหลดใหม่อีกครั้ง'));
+                }, 60000);
 
                 function cleanup() {
                     clearTimeout(timeoutId);
@@ -927,7 +927,7 @@
             box.className = `alert alert-${type} alert-dismissible fade show shadow-sm border-0 d-flex align-items-center mb-4`;
             icon.className = (type === 'success') ? 'fas fa-check-circle fs-2 text-success me-3' : 'fas fa-exclamation-triangle fs-2 text-danger me-3';
             t.textContent = title;
-            d.textContent = detail;
+            d.innerHTML = detail;
             box.classList.remove('d-none');
         }
 
@@ -940,33 +940,12 @@
         const mainApp = document.getElementById('mainApp');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        async function verifySession() {
-            if (!currentAuthToken) {
-                showLoginForm();
-                return;
-            }
-            showLoading('กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...');
-            try {
-                const res = await callGasApi({ action: 'check_auth', token: currentAuthToken });
-                if (res && res.status === 'success') {
-                    hideLoading();
-                    showMainApp();
-                    loadDataFromSheet();
-                } else {
-                    hideLoading();
-                    localStorage.removeItem('thaimass_auth_token');
-                    currentAuthToken = null;
-                    showLoginForm();
-                }
-            } catch (err) {
-                hideLoading();
-                showLoginForm();
-            }
-        }
-
         function showLoginForm() {
             loginModal.style.display = 'flex';
             mainApp.style.display = 'none';
+            const pwInput = document.getElementById('passwordInput');
+            if (pwInput) pwInput.value = '';
+            if (loginAlert) loginAlert.classList.add('d-none');
         }
 
         function showMainApp() {
@@ -1045,13 +1024,14 @@
                         showLoginForm();
                         return;
                     }
-                    showAlert('danger', 'เกิดข้อผิดพลาด', res.message || 'ไม่สามารถดึงข้อมูลได้');
+                    showAlert('danger', 'เกิดข้อผิดพลาด', `${res.message || 'ไม่สามารถดึงข้อมูลได้'} <button class="btn btn-sm btn-outline-danger ms-2" onclick="window.retryLoadData()"><i class="fas fa-redo me-1"></i>ลองใหม่</button>`);
                 }
             } catch (err) {
                 hideLoading();
-                showAlert('danger', 'ไม่สามารถเชื่อมต่อได้', err.message);
+                showAlert('danger', 'ไม่สามารถเชื่อมต่อได้', `${err.message} <button class="btn btn-sm btn-outline-danger ms-2" onclick="window.retryLoadData()"><i class="fas fa-redo me-1"></i>ลองใหม่อีกครั้ง</button>`);
             }
         }
+        window.retryLoadData = loadDataFromSheet;
 
         // Initialize default dates
         function initDatePickers() {
@@ -2150,8 +2130,10 @@
             });
         }
 
-        // Start session check
-        verifySession();
+        // บังคับแสดงหน้าจอล็อกอินเสมอ ไม่ให้เข้าระบบเองอัตโนมัติ
+        localStorage.removeItem('thaimass_auth_token');
+        currentAuthToken = null;
+        showLoginForm();
     })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
